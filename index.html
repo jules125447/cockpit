@@ -1,0 +1,1648 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Cockpit de Jules</title>
+<meta name="description" content="Planning de cours, tâches Lumivo / Tilo / général, tableau des charges et courbes.">
+<meta name="theme-color" content="#f2f4ef">
+<meta name="robots" content="noindex, nofollow">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Cockpit">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="preconnect" href="https://dfbjpwvwmjkghgiwupnm.supabase.co" crossorigin>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Figtree:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap">
+<style>
+/* Layout : héros (salut + carte « maintenant »), 4 tuiles, semaine en grille horaire, 3 listes de tâches,
+   puis le tableau des charges et les courbes. Thème clair assumé (demande de Jules). */
+:root {
+  --bg: #f2f4ef;
+  --glow-a: #e5f4d2;
+  --glow-b: #fdebdc;
+  --glow-c: #e3ecfb;
+  --surface: #ffffff;
+  --surface-2: #f7f9f5;
+  --ink: #18211a;
+  --ink-2: #3d4840;
+  --muted: #78837b;
+  --line: #e3e8df;
+  --line-2: #eef1eb;
+  --today: #f6fbef;
+  --scrim: rgba(24, 33, 26, 0.32);
+  --ring: rgba(118, 201, 37, 0.25);
+
+  --lumivo: #ef9f12; --lumivo-ink: #925a00; --lumivo-soft: #fff3da;
+  --tilo: #7ed321;   --tilo-ink: #3f7a06;   --tilo-soft: #edf8de;
+  --gen: #5b6cf0;    --gen-ink: #3946c0;    --gen-soft: #eceefe;
+  --perso: #e5568a;  --perso-ink: #ad2a5b;  --perso-soft: #fde8f0;
+  --push: #f0643f;   --push-ink: #b23b1b;   --push-soft: #feebe4;
+  --pull: #12a19e;   --pull-ink: #0b6d6b;   --pull-soft: #dcf4f3;
+  --now: #ef4444;
+  --good: #2f8a4c;
+
+  /* Urgence des tâches, de pressant à dans longtemps */
+  --lv0: #e5484d; --lv0-ink: #b4232a; --lv0-soft: #fdebec;
+  --lv1: #f08c2e; --lv1-ink: #9c4f08; --lv1-soft: #fff0e1;
+  --lv2: #4f7cc9; --lv2-ink: #2c5596; --lv2-soft: #e8f0fb;
+  --lv3: #77827a; --lv3-ink: #5d675f; --lv3-soft: #eef1ec;
+
+  --ue0-bg: #e6eeff; --ue0-ink: #2d52ad;
+  --ue1-bg: #e2f5e9; --ue1-ink: #22704a;
+  --ue2-bg: #fff0db; --ue2-ink: #925706;
+  --ue3-bg: #efe8ff; --ue3-ink: #5f36a8;
+  --ue4-bg: #daf3f2; --ue4-ink: #12706e;
+  --ue5-bg: #ffe7e2; --ue5-ink: #a8392a;
+  --ue6-bg: #f4ecdf; --ue6-ink: #75522d;
+  --ue7-bg: #e7eef5; --ue7-ink: #3b5874;
+  --uen-bg: #eef1ec; --uen-ink: #4d574f;
+
+  --font-display: "Bricolage Grotesque", "Avenir Next", "Segoe UI", sans-serif;
+  --font-body: "Figtree", "Segoe UI", system-ui, sans-serif;
+  --font-data: "Geist Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  --radius: 22px;
+  --shadow: 0 1px 2px rgba(24, 33, 26, 0.04), 0 12px 32px -16px rgba(24, 33, 26, 0.16);
+  --shadow-lg: 0 30px 80px -20px rgba(24, 33, 26, 0.35);
+  color-scheme: light;
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+[hidden] { display: none !important; }
+img { max-width: 100%; }
+body {
+  margin: 0;
+  min-height: 100vh;
+  background-color: var(--bg);
+  background-image:
+    radial-gradient(1100px 560px at -8% -10%, var(--glow-a), transparent 62%),
+    radial-gradient(900px 520px at 108% -8%, var(--glow-b), transparent 58%),
+    radial-gradient(900px 600px at 50% 120%, var(--glow-c), transparent 62%);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 15px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-top: calc(30px + env(safe-area-inset-top, 0px));
+  padding-bottom: calc(60px + env(safe-area-inset-bottom, 0px));
+}
+/* Sur téléphone, des champs en 16px évitent le zoom automatique d'iOS à la saisie. */
+@media (pointer: coarse) {
+  input[type=text], input[type=number], input[type=date], input[type=time], select, .sheet .cell { font-size: 16px; }
+}
+
+/* ---------- Écran de connexion ---------- */
+.gate { position: fixed; inset: 0; z-index: 50; display: grid; place-items: center; background: var(--bg);
+  background-image: radial-gradient(900px 500px at -10% -10%, var(--glow-a), transparent 60%), radial-gradient(800px 500px at 110% 110%, var(--glow-b), transparent 60%);
+  padding: max(16px, env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) max(16px, env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px)); }
+.gate form { width: min(380px, 100%); display: grid; gap: 14px; background: var(--surface); border: 1px solid var(--line); border-radius: 24px; box-shadow: var(--shadow-lg); padding: 28px 24px; }
+.gate .logo { width: 56px; height: 56px; border-radius: 16px; }
+.gate h1 { font-size: 1.8rem; font-weight: 800; letter-spacing: -0.03em; }
+.gate p { color: var(--ink-2); font-size: 0.92rem; }
+.gate input { width: 100%; font-family: var(--font-data); }
+.gate .btn { width: 100%; height: 46px; }
+.page { max-width: 1320px; margin: 0 auto; display: grid; gap: 22px; }
+h1, h2, h3 { font-family: var(--font-display); margin: 0; text-wrap: balance; letter-spacing: -0.02em; }
+h2 { font-size: 1.45rem; font-weight: 700; }
+h3 { font-size: 1.05rem; font-weight: 700; }
+p { margin: 0; }
+.num { font-family: var(--font-data); font-variant-numeric: tabular-nums; }
+.label { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.09em; color: var(--muted); font-weight: 700; }
+button, input, select { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 2px solid var(--gen); outline-offset: 2px; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); padding: 24px; min-width: 0; }
+.sec-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 18px; }
+.sub { color: var(--muted); font-size: 0.86rem; }
+
+/* Boutons */
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 42px; padding: 0 18px; border: 0; border-radius: 12px; background: var(--ink); color: var(--surface); font-weight: 600; white-space: nowrap; }
+.btn:hover { filter: brightness(1.15); }
+.btn.perso { background: var(--perso); }
+.btn.ghost { background: var(--surface); color: var(--ink-2); border: 1px solid var(--line); }
+.btn.ghost:hover { background: var(--surface-2); filter: none; }
+.btn.danger { background: var(--now); color: var(--surface); border-color: transparent; }
+.icon-btn { display: inline-grid; place-items: center; width: 30px; height: 30px; border: 0; border-radius: 9px; background: none; color: var(--muted); }
+.icon-btn:hover { background: var(--line-2); color: var(--ink); }
+.icon-btn svg { width: 16px; height: 16px; }
+
+/* Champs */
+input[type=text], input[type=number], input[type=date], input[type=time], select {
+  height: 42px; padding: 0 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface-2); min-width: 0;
+}
+input:focus, select:focus { outline: none; border-color: var(--c, var(--tilo)); box-shadow: 0 0 0 4px var(--ring); background: var(--surface); }
+select { padding-right: 30px; }
+::placeholder { color: var(--muted); opacity: 0.55; }
+
+/* ---------- Héros ---------- */
+.hero { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); gap: 22px; align-items: stretch; }
+.hello { display: flex; flex-direction: column; justify-content: center; gap: 12px; padding: 6px 2px; }
+.hello h1 { font-size: clamp(2.4rem, 6vw, 4.1rem); font-weight: 800; line-height: 0.98; letter-spacing: -0.035em; }
+.hello h1 .name { background: linear-gradient(transparent 64%, var(--tilo-soft) 64%, var(--tilo-soft) 92%, transparent 92%); padding: 0 4px; margin-left: -4px; }
+.lede { color: var(--ink-2); font-size: 1.08rem; max-width: 52ch; }
+.jump { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
+.jump button { border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 7px 14px; font-weight: 600; font-size: 0.88rem; color: var(--ink-2); box-shadow: var(--shadow); }
+.jump button:hover { color: var(--ink); border-color: var(--muted); }
+.jump i { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 7px; vertical-align: 1px; }
+
+.nowcard { display: grid; gap: 14px; align-content: start; }
+.now-top { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+.clock { font-family: var(--font-data); font-size: clamp(2.4rem, 5vw, 3.2rem); font-weight: 500; letter-spacing: -0.04em; line-height: 1; }
+.now-item { --ev-ink: var(--muted); padding: 14px 16px; border-radius: 16px; background: var(--surface-2); border: 1px solid var(--line-2); display: grid; gap: 3px; }
+.now-item.ue0, .now-item.ue1, .now-item.ue2, .now-item.ue3, .now-item.ue4, .now-item.ue5, .now-item.ue6, .now-item.ue7, .now-item.uen, .now-item.perso { background: var(--ev-bg); border-color: transparent; }
+.now-label { font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ev-ink); display: flex; align-items: center; gap: 7px; }
+.now-label::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+.now-item.live .now-label::before { box-shadow: 0 0 0 4px var(--surface); animation: pulse 2s infinite; }
+.now-title { all: unset; cursor: pointer; font-family: var(--font-display); font-weight: 700; font-size: 1.15rem; line-height: 1.2; color: var(--ink); overflow-wrap: anywhere; }
+.now-title:hover { text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 3px; }
+.now-title:focus-visible { outline: 2px solid var(--gen); outline-offset: 2px; border-radius: 4px; }
+.now-meta { color: var(--ink-2); font-size: 0.88rem; }
+.now-meta b { font-weight: 600; color: var(--ev-ink); }
+.bar { height: 5px; border-radius: 9px; background: var(--surface); overflow: hidden; margin-top: 8px; }
+.bar i { display: block; height: 100%; background: var(--ev-ink); border-radius: 9px; }
+.now-empty { color: var(--muted); padding: 10px 0; }
+.chip { display: inline-flex; align-items: center; gap: 6px; font-size: 0.78rem; font-weight: 600; padding: 3px 10px; border-radius: 999px; background: var(--line-2); color: var(--ink-2); white-space: nowrap; }
+@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
+
+/* ---------- Tuiles ---------- */
+.tiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 18px; }
+.tile { padding: 20px; display: grid; gap: 10px; align-content: start; }
+.tile-val { font-family: var(--font-display); font-size: 2.3rem; font-weight: 800; line-height: 1; letter-spacing: -0.03em; }
+.tile-val small { font-family: var(--font-body); font-size: 0.95rem; font-weight: 600; color: var(--muted); letter-spacing: 0; margin-left: 4px; }
+.tile-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.proj-counts { display: flex; flex-wrap: wrap; gap: 6px; }
+.proj-counts span { font-size: 0.8rem; font-weight: 600; padding: 3px 9px; border-radius: 999px; background: var(--c-soft); color: var(--c-ink); }
+.ring { width: 64px; height: 64px; flex: none; }
+.ring circle { fill: none; stroke-width: 7; }
+.goal { display: flex; align-items: center; gap: 4px; font-size: 0.8rem; color: var(--muted); }
+.goal button { width: 24px; height: 24px; border-radius: 7px; border: 1px solid var(--line); background: var(--surface); font-weight: 700; line-height: 1; color: var(--ink-2); }
+.goal button:hover { background: var(--surface-2); }
+.spark { width: 100%; height: 44px; display: block; }
+.exam-title { font-family: var(--font-display); font-weight: 700; font-size: 1.1rem; line-height: 1.2; }
+.ue-chip { display: inline-block; font-family: var(--font-data); font-size: 0.72rem; font-weight: 500; padding: 2px 8px; border-radius: 6px; background: var(--ev-bg); color: var(--ev-ink); }
+
+/* ---------- Planning ---------- */
+.cal-bar { display: flex; justify-content: space-between; align-items: center; gap: 14px; flex-wrap: wrap; margin-bottom: 16px; }
+.cal-title { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; }
+.cal-title .sub { font-size: 1rem; font-weight: 600; color: var(--ink-2); }
+.cal-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.navgrp { display: inline-flex; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; background: var(--surface); }
+.navgrp button { border: 0; background: none; height: 40px; min-width: 40px; padding: 0 12px; font-weight: 600; color: var(--ink-2); }
+.navgrp button + button, .navgrp button + input, .navgrp input + button { border-left: 1px solid var(--line); }
+.navgrp button:hover:not(:disabled) { background: var(--surface-2); color: var(--ink); }
+.navgrp button:disabled { color: var(--muted); cursor: default; opacity: 0.45; }
+.sync { font-size: 0.8rem; color: var(--muted); display: inline-flex; align-items: center; gap: 6px; }
+.sync::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--tilo); }
+.sync.late { color: var(--push-ink); }
+.sync.late::before { background: var(--push); }
+.ext { color: var(--ink-2); font-weight: 600; font-size: 0.86rem; text-decoration: none; padding: 0 6px; }
+.ext:hover { color: var(--ink); text-decoration: underline; }
+.legend { display: flex; gap: 16px; flex-wrap: wrap; font-size: 0.8rem; color: var(--muted); margin-top: 14px; }
+.legend i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; }
+
+.wk-scroll { overflow-x: auto; border: 1px solid var(--line); border-radius: 16px; }
+.wk { min-width: max-content; width: 100%; }
+.wk-row { display: grid; grid-template-columns: 52px repeat(var(--cols), minmax(132px, 1fr)); }
+.wk-head { border-bottom: 1px solid var(--line); background: var(--surface-2); }
+.dh { padding: 10px 12px; display: flex; align-items: center; gap: 8px; border-left: 1px solid var(--line-2); }
+.dh .dow { font-size: 0.74rem; text-transform: uppercase; letter-spacing: 0.08em; font-weight: 700; color: var(--muted); }
+.dh .dnum { font-family: var(--font-display); font-weight: 700; font-size: 1.15rem; width: 34px; height: 34px; display: grid; place-items: center; border-radius: 50%; }
+.dh.today .dnum { background: var(--ink); color: var(--surface); }
+.dh.today .dow { color: var(--ink); }
+.wk-all { border-bottom: 1px solid var(--line); }
+.wk-all .ad { border-left: 1px solid var(--line-2); padding: 5px; display: grid; gap: 4px; align-content: start; min-height: 34px; }
+.gut { position: relative; }
+.gut.lbl { font-size: 0.66rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); font-weight: 700; display: grid; place-items: center; }
+.gut.hours span { position: absolute; right: 8px; transform: translateY(-50%); font-family: var(--font-data); font-size: 0.7rem; color: var(--muted); }
+.gut.hours span:first-child { transform: translateY(2px); }
+.col { position: relative; border-left: 1px solid var(--line-2); background-image: linear-gradient(to bottom, var(--line-2) 1px, transparent 1px); background-size: 100% var(--hour); cursor: cell; }
+.col.today { background-color: var(--today); }
+.ev, .ad-ev, .ag-ev { --ev-bg: var(--uen-bg); --ev-ink: var(--uen-ink); }
+.ue0 { --ev-bg: var(--ue0-bg); --ev-ink: var(--ue0-ink); } .ue1 { --ev-bg: var(--ue1-bg); --ev-ink: var(--ue1-ink); }
+.ue2 { --ev-bg: var(--ue2-bg); --ev-ink: var(--ue2-ink); } .ue3 { --ev-bg: var(--ue3-bg); --ev-ink: var(--ue3-ink); }
+.ue4 { --ev-bg: var(--ue4-bg); --ev-ink: var(--ue4-ink); } .ue5 { --ev-bg: var(--ue5-bg); --ev-ink: var(--ue5-ink); }
+.ue6 { --ev-bg: var(--ue6-bg); --ev-ink: var(--ue6-ink); } .ue7 { --ev-bg: var(--ue7-bg); --ev-ink: var(--ue7-ink); }
+.uen { --ev-bg: var(--uen-bg); --ev-ink: var(--uen-ink); }
+.perso { --ev-bg: var(--perso-soft); --ev-ink: var(--perso-ink); }
+.ev { position: absolute; border: 0; text-align: left; border-radius: 11px; padding: 6px 9px; background: var(--ev-bg); color: var(--ev-ink); overflow: hidden; display: flex; flex-direction: column; gap: 2px; font-size: 0.8rem; line-height: 1.25; z-index: 1; }
+.ev:hover { z-index: 4; box-shadow: 0 8px 20px -10px rgba(24, 33, 26, 0.4); }
+.ev .t { font-weight: 700; color: var(--ink); display: -webkit-box; -webkit-line-clamp: var(--lines, 2); -webkit-box-orient: vertical; overflow: hidden; }
+.ev .m { font-family: var(--font-data); font-size: 0.68rem; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ev.perso { box-shadow: inset 0 0 0 1.5px var(--perso); }
+.ev.exam { box-shadow: inset 0 0 0 1.5px var(--ev-ink); }
+.ev.past { opacity: 0.5; }
+.flag { font-family: var(--font-body); font-size: 0.6rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; padding: 1px 5px; border-radius: 4px; background: var(--ev-ink); color: var(--surface); margin-left: 4px; }
+.ad-ev { border: 0; border-radius: 8px; padding: 4px 8px; background: var(--ev-bg); color: var(--ev-ink); font-size: 0.75rem; font-weight: 700; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.nowline { position: absolute; left: -1px; right: 0; height: 2px; background: var(--now); z-index: 3; pointer-events: none; }
+.nowline::before { content: ""; position: absolute; left: -5px; top: -4px; width: 10px; height: 10px; border-radius: 50%; background: var(--now); }
+
+.agenda { display: none; gap: 10px; }
+.ag-day { display: grid; grid-template-columns: 52px minmax(0, 1fr); gap: 12px; padding: 12px 0; border-top: 1px solid var(--line-2); }
+.ag-day:first-child { border-top: 0; }
+.ag-date { display: grid; justify-items: center; align-content: start; gap: 2px; }
+.ag-date .dow { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.08em; font-weight: 700; color: var(--muted); }
+.ag-date .dnum { font-family: var(--font-display); font-weight: 700; font-size: 1.3rem; width: 38px; height: 38px; display: grid; place-items: center; border-radius: 50%; }
+.ag-day.today .dnum { background: var(--ink); color: var(--surface); }
+.ag-items { display: grid; gap: 6px; }
+.ag-ev { border: 0; border-radius: 12px; padding: 9px 12px; background: var(--ev-bg); color: var(--ev-ink); text-align: left; display: grid; gap: 1px; }
+.ag-ev .t { font-weight: 700; color: var(--ink); }
+.ag-ev .m { font-family: var(--font-data); font-size: 0.72rem; }
+.ag-ev.perso { box-shadow: inset 0 0 0 1.5px var(--perso); }
+.ag-none { color: var(--muted); font-size: 0.88rem; padding-top: 8px; }
+
+/* ---------- Tâches ---------- */
+.tasks { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; align-items: start; }
+.t-lumivo { --c: var(--lumivo); --c-ink: var(--lumivo-ink); --c-soft: var(--lumivo-soft); --ring: rgba(239, 159, 18, 0.22); }
+.t-tilo { --c: var(--tilo); --c-ink: var(--tilo-ink); --c-soft: var(--tilo-soft); --ring: rgba(126, 211, 33, 0.25); }
+.t-general { --c: var(--gen); --c-ink: var(--gen-ink); --c-soft: var(--gen-soft); --ring: rgba(91, 108, 240, 0.2); }
+.lvl0 { --l: var(--lv0); --l-ink: var(--lv0-ink); --l-soft: var(--lv0-soft); }
+.lvl1 { --l: var(--lv1); --l-ink: var(--lv1-ink); --l-soft: var(--lv1-soft); }
+.lvl2 { --l: var(--lv2); --l-ink: var(--lv2-ink); --l-soft: var(--lv2-soft); }
+.lvl3 { --l: var(--lv3); --l-ink: var(--lv3-ink); --l-soft: var(--lv3-soft); }
+.tlist { display: flex; flex-direction: column; gap: 14px; }
+.tl-head { display: flex; align-items: center; gap: 12px; }
+.mark { width: 42px; height: 42px; border-radius: 13px; display: grid; place-items: center; background: var(--c-soft); color: var(--c-ink); font-family: var(--font-display); font-weight: 800; font-size: 1.2rem; flex: none; }
+.tl-head .sub { font-size: 0.82rem; }
+.tl-progress { height: 6px; border-radius: 9px; background: var(--line-2); overflow: hidden; }
+.tl-progress i { display: block; height: 100%; background: var(--c); border-radius: 9px; transition: width 0.4s; }
+.tl-form { display: grid; gap: 8px; }
+.tl-add { display: flex; align-items: center; gap: 6px; background: var(--surface-2); border: 1px solid var(--line); border-radius: 14px; padding: 4px 4px 4px 14px; }
+.tl-add:focus-within { border-color: var(--c); box-shadow: 0 0 0 4px var(--ring); background: var(--surface); }
+.tl-add input { flex: 1; border: 0; background: transparent; height: 36px; padding: 0; box-shadow: none; }
+.tl-add input:focus { box-shadow: none; background: transparent; }
+.tl-add button { width: 36px; height: 36px; border: 0; border-radius: 11px; background: var(--c); color: var(--surface); font-size: 1.3rem; font-weight: 600; line-height: 1; flex: none; }
+.lvl-row { display: grid; gap: 6px; }
+.lvl-cap { font-size: 0.68rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.09em; color: var(--muted); padding-left: 2px; }
+.lvl-pick { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 3px; padding: 3px; background: var(--surface-2); border: 1px solid var(--line); border-radius: 12px; }
+.lvl-pick button { display: inline-flex; align-items: center; justify-content: center; gap: 5px; height: 30px; padding: 0 4px; border: 0; border-radius: 9px; background: transparent; font-size: 0.74rem; font-weight: 700; color: var(--muted); white-space: nowrap; min-width: 0; }
+.lvl-pick button::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--l); flex: none; }
+.lvl-pick button:hover { color: var(--ink-2); background: var(--surface); }
+.lvl-pick button[aria-checked=true] { background: var(--l); color: var(--surface); box-shadow: 0 4px 10px -6px var(--l); }
+.lvl-pick button[aria-checked=true]::before { background: var(--surface); }
+.items { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+.item { display: grid; grid-template-columns: 24px minmax(0, 1fr) auto auto; gap: 8px; align-items: start; padding: 8px 4px 8px 6px; border-radius: 11px; }
+.item:hover { background: var(--surface-2); }
+.item .txt { overflow-wrap: anywhere; padding-top: 1px; }
+.item.lvl0:not(.done) .txt { font-weight: 600; }
+.item.done .txt { text-decoration: line-through; text-decoration-color: var(--muted); color: var(--muted); }
+.check { appearance: none; -webkit-appearance: none; width: 22px; height: 22px; margin: 0; border-radius: 50%; border: 2px solid var(--c); background: var(--surface); cursor: pointer; display: grid; place-items: center; }
+.check:checked { background: var(--c) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Cpath d='M5.5 10.5l3 3 6-6.5' fill='none' stroke='white' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center / 16px no-repeat; }
+.lvl { display: inline-flex; align-items: center; gap: 5px; height: 24px; padding: 0 9px; border: 0; border-radius: 999px; background: var(--l-soft); color: var(--l-ink); font-size: 0.72rem; font-weight: 700; white-space: nowrap; margin-top: -1px; }
+.lvl::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--l); }
+.lvl:hover { box-shadow: inset 0 0 0 1px var(--l); }
+.item:not(:hover):not(:focus-within) .del { opacity: 0; }
+@media (hover: none) { .item .del { opacity: 1; } }
+.grp { display: flex; align-items: center; gap: 8px; margin: 10px 6px 2px; font-size: 0.7rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.08em; color: var(--l-ink); }
+.grp:first-child { margin-top: 0; }
+.grp::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--l); }
+.grp::after { content: ""; flex: 1; height: 1px; background: var(--line-2); }
+.grp span { font-family: var(--font-data); font-weight: 500; color: var(--muted); letter-spacing: 0; }
+.expand { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; height: 38px; border: 1px dashed var(--line); border-radius: 12px; background: transparent; font-weight: 600; font-size: 0.86rem; color: var(--ink-2); }
+.expand:hover { border-style: solid; border-color: var(--c); color: var(--c-ink); background: var(--c-soft); }
+.expand svg { width: 14px; height: 14px; transition: transform 0.2s; }
+.expand[aria-expanded=true] svg { transform: rotate(180deg); }
+.empty { color: var(--muted); font-size: 0.9rem; padding: 10px 6px; }
+.tl-done summary { cursor: pointer; color: var(--muted); font-size: 0.84rem; font-weight: 600; padding: 4px 6px; list-style: none; }
+.tl-done summary::-webkit-details-marker { display: none; }
+.tl-done summary::before { content: "▸"; display: inline-block; margin-right: 6px; transition: transform 0.2s; }
+.tl-done[open] summary::before { transform: rotate(90deg); }
+.lvl-menu { position: fixed; z-index: 35; min-width: 210px; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; box-shadow: var(--shadow-lg); padding: 6px; display: grid; gap: 2px; }
+.lvl-menu button { display: grid; grid-template-columns: 10px 1fr; gap: 10px; align-items: center; text-align: left; border: 0; background: none; padding: 8px 10px; border-radius: 10px; }
+.lvl-menu button::before { content: ""; width: 10px; height: 10px; border-radius: 50%; background: var(--l); }
+.lvl-menu button:hover, .lvl-menu button:focus-visible { background: var(--surface-2); outline: none; }
+.lvl-menu button[aria-checked=true] { background: var(--l-soft); }
+.lvl-menu b { display: block; font-size: 0.86rem; color: var(--l-ink); }
+.lvl-menu small { display: block; font-size: 0.74rem; color: var(--muted); }
+
+/* ---------- Tableau des charges ---------- */
+.sheet-bar { display: flex; justify-content: space-between; align-items: center; gap: 12px 16px; flex-wrap: wrap; margin-bottom: 16px; }
+.sheet-tools { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.navgrp input[type=date] { border: 0; border-radius: 0; height: 40px; background: var(--surface); font-family: var(--font-data); font-size: 0.84rem; padding: 0 10px; box-shadow: none; }
+.chips { display: inline-flex; gap: 6px; flex-wrap: wrap; }
+.chips button { border: 1px solid var(--line); background: var(--surface); border-radius: 999px; height: 34px; padding: 0 14px; font-weight: 600; font-size: 0.85rem; color: var(--ink-2); }
+.chips button:hover { border-color: var(--muted); }
+.chips button[aria-pressed=true] { background: var(--tilo); border-color: var(--tilo); color: var(--ink); }
+.sheet-scroll { --rh: 196px; overflow-x: auto; border: 1px solid var(--line); border-radius: 16px; background: var(--surface); scroll-padding-left: var(--rh); }
+.sheet { border-collapse: separate; border-spacing: 0; min-width: 100%; font-size: 0.88rem; }
+.sheet th, .sheet td { padding: 0; border-bottom: 1px solid var(--line-2); border-right: 1px solid var(--line-2); }
+.sheet tbody tr:last-child > * { border-bottom: 0; }
+.sheet thead th { height: 46px; min-width: 74px; text-align: center; background: var(--surface-2); font-family: var(--font-data); font-weight: 500; font-size: 0.78rem; color: var(--ink-2); line-height: 1.15; border-bottom: 1px solid var(--line); }
+.sheet thead th .wd { display: block; font-family: var(--font-body); font-size: 0.6rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+.sheet thead th.today { background: var(--tilo); color: var(--ink); }
+.sheet thead th.today .wd { color: var(--ink); }
+.sheet .rowhead { position: sticky; left: 0; z-index: 2; background: var(--surface); text-align: left; width: var(--rh); min-width: var(--rh); max-width: var(--rh); padding: 0 6px 0 8px; border-right: 1px solid var(--line); }
+.sheet thead .rowhead { z-index: 3; background: var(--surface-2); font-family: var(--font-body); font-size: 0.7rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.09em; color: var(--muted); padding-left: 16px; }
+.sheet tr.sec > td { height: 32px; background: var(--sec-bg); border-right: 0; }
+.sheet tr.sec > td.rowhead { font-size: 0.7rem; font-weight: 800; letter-spacing: 0.09em; text-transform: uppercase; color: var(--sec-ink); padding-left: 16px; }
+.sec-weight { --sec-bg: var(--tilo-soft); --sec-ink: var(--tilo-ink); }
+.sec-push { --sec-bg: var(--push-soft); --sec-ink: var(--push-ink); }
+.sec-pull { --sec-bg: var(--pull-soft); --sec-ink: var(--pull-ink); }
+.row-w { --c: var(--gen); --c-soft: var(--gen-soft); }
+.row-push { --c: var(--push); --c-soft: var(--push-soft); }
+.row-pull { --c: var(--pull); --c-soft: var(--pull-soft); }
+.rh { display: flex; align-items: center; gap: 5px; height: 56px; }
+.rh-move { display: grid; gap: 1px; flex: none; }
+.rh-move button { width: 22px; height: 18px; border: 0; background: none; border-radius: 5px; color: var(--muted); display: grid; place-items: center; padding: 0; }
+.rh-move button:hover:not(:disabled) { background: var(--line-2); color: var(--ink); }
+.rh-move button:disabled { opacity: 0.25; cursor: default; }
+.rh-move svg { width: 10px; height: 10px; }
+.rh-name { flex: 1; min-width: 0; display: grid; gap: 1px; padding-left: 2px; }
+.rh-name .nm { font-weight: 700; line-height: 1.2; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
+.prb { font-size: 0.72rem; font-weight: 700; color: var(--lumivo-ink); white-space: nowrap; }
+.prb.none { color: var(--muted); font-weight: 600; }
+.rh-del { flex: none; }
+.rh-del.confirm { width: auto; padding: 0 8px; color: var(--now); font-size: 0.75rem; font-weight: 700; }
+.sheet .cell { display: block; width: 100%; min-width: 74px; height: 56px; border: 0; border-radius: 0; background: transparent; text-align: center; font-family: var(--font-data); font-size: 0.92rem; color: var(--ink); padding: 0 6px; box-shadow: none; }
+.sheet .cell:hover { background: var(--surface-2); }
+.sheet .cell:focus { outline: none; background: var(--surface); box-shadow: inset 0 0 0 2px var(--c); }
+.sheet td.tcol { background: var(--today); }
+.sheet td.has { background: var(--c-soft); }
+.sheet td.pr { background: var(--lumivo-soft); }
+.sheet td.pr .cell { color: var(--lumivo-ink); font-weight: 600; }
+.sheet tr.addrow > td { border-right: 0; }
+.sheet tr.addrow .rowhead { padding: 7px 10px; }
+.sheet .add-ex input { width: 100%; height: 38px; border: 1px dashed var(--line); background: transparent; font-size: 0.85rem; }
+.sheet .add-ex input:focus { border-style: solid; border-color: var(--c); background: var(--surface); }
+.sheet-foot { margin-top: 12px; font-size: 0.82rem; color: var(--muted); }
+
+/* ---------- Courbes ---------- */
+.curves { display: grid; gap: 26px; }
+.curves .sec-head { margin-bottom: 0; }
+.curve-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 30px; }
+.chart-top { display: flex; justify-content: space-between; align-items: end; gap: 12px; flex-wrap: wrap; margin-bottom: 10px; }
+.kpi { font-family: var(--font-display); font-weight: 800; font-size: 1.5rem; letter-spacing: -0.02em; }
+.kpi small { font-family: var(--font-body); font-size: 0.82rem; font-weight: 600; color: var(--muted); margin-left: 6px; letter-spacing: 0; }
+.chart-box { position: relative; }
+.chart-box svg { width: 100%; height: auto; display: block; overflow: visible; }
+.chart-box svg text { fill: var(--muted); font-family: var(--font-data); font-size: 10.5px; }
+.tip { position: absolute; pointer-events: none; background: var(--ink); color: var(--surface); padding: 6px 10px; border-radius: 10px; font-size: 0.78rem; font-weight: 600; white-space: nowrap; transform: translate(-50%, calc(-100% - 12px)); z-index: 5; }
+.tip small { display: block; font-weight: 500; opacity: 0.75; font-size: 0.72rem; }
+.chart-empty { border: 1.5px dashed var(--line); border-radius: 16px; padding: 34px 18px; text-align: center; color: var(--muted); font-size: 0.9rem; }
+.minis { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; }
+.mini { all: unset; box-sizing: border-box; cursor: pointer; display: grid; gap: 3px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); min-width: 0; }
+.mini.push { --c: var(--push); --c-soft: var(--push-soft); } .mini.pull { --c: var(--pull); --c-soft: var(--pull-soft); }
+.mini:hover { border-color: var(--c); }
+.mini.on { border-color: var(--c); background: var(--c-soft); }
+.mini:focus-visible { outline: 2px solid var(--gen); outline-offset: 2px; }
+.mini .mn { font-weight: 700; font-size: 0.84rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mini .mv { font-family: var(--font-display); font-weight: 800; font-size: 1.35rem; letter-spacing: -0.02em; line-height: 1.1; }
+.mini .mv small { font-family: var(--font-body); font-size: 0.78rem; font-weight: 600; color: var(--muted); margin-left: 3px; letter-spacing: 0; }
+.mini .md { font-size: 0.74rem; font-weight: 600; color: var(--muted); }
+.mini .md.up { color: var(--good); }
+.mini .spark { height: 30px; margin-top: 4px; }
+
+/* ---------- Modale + toast ---------- */
+.modal-back { position: fixed; inset: 0; z-index: 30; background: var(--scrim); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); display: grid; place-items: center;
+  padding: max(16px, env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) max(16px, env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px)); }
+.modal { width: min(470px, 100%); max-height: 100%; overflow: auto; background: var(--surface); border-radius: 24px; box-shadow: var(--shadow-lg); padding: 24px; display: grid; gap: 16px; }
+.md-head { display: grid; gap: 6px; }
+.md-head h2 { font-size: 1.4rem; overflow-wrap: anywhere; }
+.md-kind { justify-self: start; font-size: 0.7rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.08em; padding: 3px 10px; border-radius: 999px; background: var(--ev-bg); color: var(--ev-ink); }
+.md-rows { margin: 0; display: grid; gap: 10px; }
+.md-rows div { display: grid; grid-template-columns: 96px minmax(0, 1fr); gap: 12px; }
+.md-rows dt { color: var(--muted); font-size: 0.85rem; }
+.md-rows dd { margin: 0; font-weight: 500; overflow-wrap: anywhere; }
+.md-raw { font-size: 0.8rem; color: var(--muted); background: var(--surface-2); border-radius: 10px; padding: 8px 10px; }
+.md-actions { display: flex; justify-content: flex-end; gap: 8px; flex-wrap: wrap; margin-top: 4px; }
+.field { display: grid; gap: 6px; }
+.field > span { font-size: 0.82rem; font-weight: 700; color: var(--ink-2); }
+.field > span em { font-style: normal; font-weight: 500; color: var(--muted); margin-left: 4px; }
+.field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; align-items: end; }
+.checkline { display: flex; align-items: center; gap: 8px; height: 42px; font-weight: 600; font-size: 0.9rem; cursor: pointer; }
+.checkline input { width: 18px; height: 18px; accent-color: var(--perso); }
+.pe-form { display: grid; gap: 14px; --ring: rgba(229, 86, 138, 0.2); --c: var(--perso); }
+.form-err { color: var(--now); font-size: 0.86rem; font-weight: 600; }
+.toast { position: fixed; left: 50%; bottom: calc(20px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); background: var(--ink); color: var(--surface); padding: 10px 18px; border-radius: 999px; font-weight: 600; font-size: 0.9rem; z-index: 40; box-shadow: var(--shadow-lg); max-width: calc(100% - 32px); text-align: center; }
+.status { justify-self: start; font-size: 0.86rem; font-weight: 600; color: var(--push-ink); background: var(--push-soft); padding: 6px 12px; border-radius: 10px; }
+.foot { color: var(--muted); font-size: 0.8rem; text-align: center; padding-top: 6px; }
+
+/* ---------- Responsive ---------- */
+@media (max-width: 1100px) {
+  .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 900px) {
+  .hero { grid-template-columns: minmax(0, 1fr); }
+  .tasks { grid-template-columns: minmax(0, 1fr); }
+  .curve-grid { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 760px) {
+  .wk-scroll { display: none; }
+  .agenda { display: grid; }
+  .card { padding: 18px; }
+}
+@media (max-width: 560px) {
+  .tiles { grid-template-columns: minmax(0, 1fr); }
+  .field-row { grid-template-columns: minmax(0, 1fr); }
+  .cal-actions .btn { flex: 1; }
+  .sheet-scroll { --rh: 172px; }
+  .rh-del { width: 26px; }
+  .sheet thead th, .sheet .cell { min-width: 64px; }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .item, .btn, .chips button, .ev, .mini, .lvl-pick button { transition: background-color 0.15s, filter 0.15s, opacity 0.15s, box-shadow 0.15s, border-color 0.15s; }
+  .page > * { animation: rise 0.5s both; }
+  .page > :nth-child(2) { animation-delay: 0.05s; } .page > :nth-child(3) { animation-delay: 0.1s; } .page > :nth-child(4) { animation-delay: 0.15s; }
+}
+@media (prefers-reduced-motion: reduce) { .now-item.live .now-label::before { animation: none; } }
+@keyframes rise { from { transform: translateY(8px); } to { transform: none; } }
+</style>
+</head>
+<body>
+
+<div class="gate" id="gate" hidden>
+  <form id="gate-form" novalidate>
+    <img class="logo" src="icons/icon-192.png" alt="" width="56" height="56">
+    <h1>Cockpit de Jules</h1>
+    <p>Entre ton code d'accès. Il n'est demandé qu'une fois sur chaque appareil.</p>
+    <label class="field"><span>Code d'accès</span><input id="gate-code" type="text" autocomplete="current-password" autocapitalize="none" autocorrect="off" spellcheck="false" placeholder="mot-mot-mot-mot-00" required></label>
+    <p class="form-err" id="gate-err" hidden></p>
+    <button class="btn" type="submit" id="gate-btn">Entrer</button>
+  </form>
+</div>
+
+<div class="page">
+  <header class="hero">
+    <div class="hello">
+      <div class="label" id="today-label">Aujourd'hui</div>
+      <h1><span id="greet">Bonjour</span> <span class="name">Jules</span></h1>
+      <p class="lede" id="lede">Ta journée en un coup d'œil : cours, tâches et entraînement.</p>
+      <nav class="jump" aria-label="Aller à">
+        <button type="button" data-jump="planning"><i style="background:var(--ue0-ink)"></i>Planning</button>
+        <button type="button" data-jump="taches"><i style="background:var(--lumivo)"></i>Tâches</button>
+        <button type="button" data-jump="sport"><i style="background:var(--push)"></i>Sport</button>
+      </nav>
+    </div>
+    <div class="card nowcard">
+      <div class="now-top"><span class="label">Maintenant</span><span class="clock" id="clock">--:--</span></div>
+      <div id="now-body" style="display:grid;gap:10px"><p class="now-empty">Ton planning s'affiche ici dès qu'il est chargé.</p></div>
+    </div>
+  </header>
+
+  <p class="status" id="status" hidden></p>
+
+  <section class="tiles" aria-label="Résumé">
+    <div class="card tile">
+      <span class="label">Tâches à faire</span>
+      <div class="tile-val" id="tl-open">–</div>
+      <div class="proj-counts" id="tl-proj"></div>
+    </div>
+    <div class="card tile">
+      <span class="label">Séances cette semaine</span>
+      <div class="tile-row">
+        <div class="tile-val" id="ss-val">–</div>
+        <svg class="ring" viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="32" r="26" style="stroke:var(--line-2)"/><circle id="ss-ring" cx="32" cy="32" r="26" style="stroke:var(--push)" stroke-linecap="round" stroke-dasharray="0 164" transform="rotate(-90 32 32)"/></svg>
+      </div>
+      <div class="goal">Objectif <button type="button" id="goal-minus" aria-label="Baisser l'objectif">−</button><b class="num" id="goal-val">4</b><button type="button" id="goal-plus" aria-label="Monter l'objectif">+</button> par semaine</div>
+    </div>
+    <div class="card tile">
+      <span class="label">Poids</span>
+      <div class="tile-row"><div class="tile-val" id="wt-val">–</div><span class="chip" id="wt-delta" hidden></span></div>
+      <div id="wt-spark"></div>
+    </div>
+    <div class="card tile">
+      <span class="label">Prochaine évaluation</span>
+      <div id="exam-body"><p class="sub">Les évaluations de ton planning apparaîtront ici.</p></div>
+    </div>
+  </section>
+
+  <section class="card" id="planning" aria-labelledby="h-planning">
+    <div class="cal-bar">
+      <div class="cal-title"><h2 id="h-planning">Planning</h2><span class="sub" id="wk-label"></span></div>
+      <div class="cal-actions">
+        <span class="sync" id="cal-sync" hidden></span>
+        <div class="navgrp">
+          <button type="button" id="wk-prev" aria-label="Semaine précédente">‹</button>
+          <button type="button" id="wk-today">Aujourd'hui</button>
+          <button type="button" id="wk-next" aria-label="Semaine suivante">›</button>
+        </div>
+        <button type="button" class="btn perso" id="pe-open">+ Événement perso</button>
+      </div>
+    </div>
+    <div class="wk-scroll" id="wk"></div>
+    <div class="agenda" id="agenda"></div>
+    <div class="legend">
+      <span><i style="background:var(--ue0-bg);box-shadow:inset 0 0 0 1px var(--ue0-ink)"></i>Cours (une couleur par UE)</span>
+      <span><i style="background:var(--perso-soft);box-shadow:inset 0 0 0 1.5px var(--perso)"></i>Perso</span>
+      <span>Clique sur un créneau vide pour y ajouter un événement.</span>
+      <a class="ext" href="https://calendar.google.com/calendar/u/0/embed?src=71f7aff837a8d038f8030565306d35117d872832fa4b2da57f765863ba2aa3f7@group.calendar.google.com&amp;ctz=Europe/Paris" target="_blank" rel="noopener">Google Agenda ↗</a>
+    </div>
+  </section>
+
+  <section class="tasks" id="taches" aria-label="Tâches">
+    <article class="card tlist t-lumivo" data-list="lumivo"></article>
+    <article class="card tlist t-tilo" data-list="tilo"></article>
+    <article class="card tlist t-general" data-list="general"></article>
+  </section>
+
+  <section class="card" id="sport" aria-labelledby="h-sport">
+    <div class="sheet-bar">
+      <div class="cal-title"><h2 id="h-sport">Sport</h2><span class="sub">Tableau des charges</span></div>
+      <div class="sheet-tools">
+        <div class="chips" id="t-range" role="group" aria-label="Nombre de jours affichés"></div>
+        <div class="navgrp">
+          <button type="button" id="t-prev" aria-label="Jours précédents">‹</button>
+          <input type="date" id="t-end" aria-label="Dernier jour affiché">
+          <button type="button" id="t-next" aria-label="Jours suivants">›</button>
+          <button type="button" id="t-today" hidden>Aujourd'hui</button>
+        </div>
+      </div>
+    </div>
+    <div class="sheet-scroll" id="sheet"></div>
+    <p class="sheet-foot">Saisis ton poids du corps et tes charges en kg : les courbes se mettent à jour automatiquement.</p>
+  </section>
+
+  <section class="card curves" id="courbes" aria-labelledby="h-curves">
+    <div class="sec-head">
+      <h2 id="h-curves">Courbes</h2>
+      <div class="chips" id="c-range" role="group" aria-label="Période des courbes"></div>
+    </div>
+    <div class="curve-grid">
+      <div>
+        <div class="chart-top"><div><h3>Poids du corps</h3><p class="sub" id="cw-sub">Évolution sur la période</p></div><div class="kpi" id="cw-kpi"></div></div>
+        <div class="chart-box" id="c-weight"></div>
+      </div>
+      <div>
+        <div class="chart-top">
+          <div><h3>Charges</h3><p class="sub" id="cl-sub">Choisis un exercice</p></div>
+          <select id="c-ex" aria-label="Exercice affiché"></select>
+        </div>
+        <div class="chart-box" id="c-load"></div>
+      </div>
+    </div>
+    <div>
+      <div class="chart-top"><div><h3>Par exercice</h3><p class="sub">Dernière charge et progression sur la période. Choisis un exercice pour afficher sa courbe.</p></div></div>
+      <div class="minis" id="minis"></div>
+    </div>
+  </section>
+
+  <p class="foot">Le planning de cours est lu en direct dans Google Agenda. Tes événements perso, tâches et charges sont enregistrés en ligne et synchronisés sur tous tes appareils.<br><button type="button" class="ext" id="logout" style="background:none;border:0;margin-top:6px">Déconnecter cet appareil</button></p>
+</div>
+
+<div class="modal-back" id="modal" hidden></div>
+<div class="toast" id="toast" role="status" hidden></div>
+
+<script>
+(() => {
+  "use strict";
+  const TZ = "Europe/Paris";
+  const HOUR = 50;
+  const LISTS = {
+    lumivo: { name: "Lumivo", letter: "L", ph: "Nouvelle tâche Lumivo" },
+    tilo: { name: "Tilo", letter: "T", ph: "Nouvelle tâche Tilo" },
+    general: { name: "Général", letter: "G", ph: "Nouvelle tâche" },
+  };
+  const LEVELS = [
+    { label: "Pressant", short: "Pressant", hint: "À faire au plus vite" },
+    { label: "Bientôt", short: "Bientôt", hint: "Dans les prochains jours" },
+    { label: "Plus tard", short: "Plus tard", hint: "Dans les semaines à venir" },
+    { label: "Dans longtemps", short: "Longtemps", hint: "Quand j'aurai le temps" },
+  ];
+  const COLLAPSED = 3;
+  const slug = (s) => String(s).normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "exercice";
+  const DEFAULT_EX = {
+    push: ["Développé couché", "Développé militaire", "Dips lestés", "Développé incliné haltères", "Élévations latérales", "Extensions triceps poulie"].map((name) => ({ id: slug(name), name })),
+    pull: ["Tractions lestées", "Rowing barre", "Tirage vertical", "Rowing haltère", "Curl biceps", "Face pull"].map((name) => ({ id: slug(name), name })),
+  };
+  const T_RANGES = [[14, "14 jours"], [30, "30 jours"], [90, "90 jours"], [365, "1 an"]];
+  const C_RANGES = [[30, "30 jours"], [90, "90 jours"], [365, "1 an"], [0, "Tout"]];
+  const ICON_X = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>';
+  const ICON_TRASH = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.6 8.5h5.8l.6-8.5" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  const ICON_UP = '<svg viewBox="0 0 10 10" aria-hidden="true"><path d="M2 6.5L5 3.5l3 3" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  const ICON_DOWN = '<svg viewBox="0 0 10 10" aria-hidden="true"><path d="M2 3.5L5 6.5l3-3" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  const ICON_CHEV = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 6l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+
+  const state = {
+    tasks: [], perso: [], calendar: null, exercises: null, goals: null,
+    weights: {}, loads: {}, // { "AAAA-MM-JJ": kg } et { "AAAA-MM-JJ": { idExercice: kg } }
+    week: 0, tRange: 14, tEnd: null, cRange: 90, chartEx: null,
+    addLevel: { lumivo: 1, tilo: 1, general: 1 }, expanded: {},
+  };
+  let db = null, evCache = null, tableDay = null;
+  // Ce que la base a confirmé, et les saisies encore en route : un instantané de la base ne doit pas effacer une saisie pas encore écrite.
+  const server = { loads: {}, weights: {}, exercises: null };
+  const pend = { loads: {}, weights: {}, exercises: null };
+  function mergeData() {
+    const l = { ...server.loads }, w = { ...server.weights };
+    for (const [d, m] of Object.entries(pend.loads)) { if (Object.keys(m).length) l[d] = m; else delete l[d]; }
+    for (const [d, v] of Object.entries(pend.weights)) { if (v == null) delete w[d]; else w[d] = v; }
+    state.loads = l; state.weights = w;
+  }
+
+  /* ---------- Utilitaires ---------- */
+  const $ = (s, r = document) => r.querySelector(s);
+  const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+  const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const pad = (n) => String(n).padStart(2, "0");
+  const fr = (n) => (Math.round(n * 10) / 10).toLocaleString("fr-FR");
+  const frKg = (n) => Number(n).toLocaleString("fr-FR", { maximumFractionDigits: 2 });
+  const cap = (s) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : s);
+  const plural = (n, w) => `${n} ${w}${n > 1 ? "s" : ""}`;
+  const partsFmt = new Intl.DateTimeFormat("en-CA", { timeZone: TZ, year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hourCycle: "h23" });
+  function paris(d) { const o = {}; for (const p of partsFmt.formatToParts(d)) o[p.type] = p.value; return { key: `${o.year}-${o.month}-${o.day}`, min: (+o.hour % 24) * 60 + +o.minute }; }
+  const keyDate = (k) => { const [y, m, d] = k.split("-").map(Number); return new Date(Date.UTC(y, m - 1, d, 12)); };
+  const addDays = (k, n) => { const d = keyDate(k); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); };
+  const dow = (k) => (keyDate(k).getUTCDay() + 6) % 7;
+  const mondayOf = (k) => addDays(k, -dow(k));
+  const dayDiff = (a, b) => Math.round((keyDate(b) - keyDate(a)) / 864e5);
+  const fmtKey = (k, o) => keyDate(k).toLocaleDateString("fr-FR", { timeZone: "UTC", ...o });
+  const fmtH = (m) => `${Math.floor(m / 60)}h${m % 60 ? pad(m % 60) : ""}`;
+  const hhmm = (m) => `${pad(Math.floor(m / 60))}:${pad(m % 60)}`;
+  const toMin = (s) => { const [h, m] = String(s || "").split(":").map(Number); return (h || 0) * 60 + (m || 0); };
+  const todayKey = () => paris(new Date()).key;
+  const isKey = (s) => /^\d{4}-\d{2}-\d{2}$/.test(String(s || ""));
+  const goal = () => Math.min(14, Math.max(1, +(state.goals?.sessions) || 4));
+  const reduced = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const lvlOf = (t) => (Number.isInteger(t.level) && t.level >= 0 && t.level <= 3 ? t.level : t.urgent ? 0 : 1);
+  const store = {
+    get(k) { try { return localStorage.getItem("cockpit." + k); } catch (_) { return null; } },
+    set(k, v) { try { localStorage.setItem("cockpit." + k, v); } catch (_) {} },
+  };
+  function exList(g) {
+    const list = state.exercises && state.exercises[g];
+    if (!Array.isArray(list)) return DEFAULT_EX[g];
+    // Accepte aussi l'ancien format (liste de noms) et ne garde que des identifiants sûrs.
+    return list.map((x) => (typeof x === "string" ? { name: x } : x))
+      .filter((x) => x && typeof x.name === "string" && x.name.trim())
+      .map((x) => ({ id: /^[a-z0-9-]+$/.test(x.id || "") ? x.id : slug(x.name), name: x.name }));
+  }
+  const allEx = () => [...exList("push").map((x) => ({ ...x, g: "push" })), ...exList("pull").map((x) => ({ ...x, g: "pull" }))];
+
+  function toast(msg) { const t = $("#toast"); t.textContent = msg; t.hidden = false; clearTimeout(toast.t); toast.t = setTimeout(() => (t.hidden = true), 2600); }
+  function setStatus(msg) { const s = $("#status"); s.textContent = msg || ""; s.hidden = !msg; }
+  async function write(fn, okMsg) {
+    if (!db) { toast("Entre ton code d'accès pour enregistrer."); return false; }
+    try { await fn(); if (okMsg) toast(okMsg); return true; }
+    catch (e) {
+      const c = e && e.code;
+      toast(c === "quota_exceeded" ? "Stockage plein : supprime d'anciennes données." : c === "invalid_argument" ? "Modification refusée sur ce tableau." : "Enregistrement impossible, réessaie dans un instant.");
+      return false;
+    }
+  }
+  // Une écriture à la fois par document : les saisies rapides sur une même date passent dans l'ordre.
+  const queues = {};
+  function enqueue(path, fn, okMsg) { const p = (queues[path] || Promise.resolve()).then(() => write(fn, okMsg)); queues[path] = p; return p; }
+
+  /* ---------- Événements (cours + perso) ---------- */
+  const EXAM_RE = /(EXAM|[ÉE]VALUATION|PARTIEL|CONTR[ÔO]LE CONTINU)/i;
+  function parseCourse(raw) {
+    const s = String(raw || "").replace(/\s+/g, " ").trim();
+    const um = s.match(/UE\s*-?\s*(\d{3})/i);
+    const ue = um ? um[1] : null;
+    let rest = um ? s.slice(0, um.index) + " " + s.slice(um.index + um[0].length) : s;
+    rest = rest.replace(/\s+/g, " ").replace(/^[\s\-–:]+/, "").trim();
+    const parts = rest.split(/\s*[-–]\s+/).map((p) => p.trim()).filter(Boolean);
+    let title = parts[0] || s;
+    let teacher = parts.length > 1 ? parts.slice(1).join(" – ") : "";
+    if (!teacher) {
+      const tm = title.match(/\s((?:[A-Z]\.)+\s?[A-ZÀ-Ý][A-Za-zÀ-ÿ'’-]+)$/);
+      if (tm) { teacher = tm[1]; title = title.slice(0, tm.index).trim(); }
+    }
+    const exam = EXAM_RE.test(s);
+    teacher = teacher.replace(/(EXAMEN|EXAM|[ÉE]VALUATIONS?|PARTIEL|INTERM[ÉE]DIAIRE)/gi, "").replace(/\s+/g, " ").trim();
+    if (/^exam/i.test(title)) title = "Examen";
+    return { title: cap(title), teacher, ue, exam };
+  }
+  function getEvents() {
+    if (evCache) return evCache;
+    const out = [];
+    (state.calendar?.events || []).forEach((e, i) => {
+      const base = { id: "c" + i, kind: "cours", raw: e.t, loc: e.loc || "", ...parseCourse(e.t) };
+      if (e.allDay) { if (isKey(e.sd)) out.push({ ...base, allDay: true, sd: e.sd, ed: isKey(e.ed) ? e.ed : addDays(e.sd, 1), key: e.sd, a: 0, b: 0 }); return; }
+      const sd = new Date(e.s), ed = new Date(e.e);
+      if (isNaN(sd) || isNaN(ed)) return;
+      const s = paris(sd), en = paris(ed);
+      out.push({ ...base, key: s.key, a: s.min, b: en.key === s.key ? Math.max(en.min, s.min + 15) : 1440 });
+    });
+    for (const d of state.perso) {
+      if (!isKey(d.date)) continue;
+      const base = { id: "p" + d.id, docId: d.id, kind: "perso", title: d.title || "Sans titre", raw: d.title, loc: d.loc || "", note: d.note || "", ue: null, exam: false };
+      if (d.allDay) out.push({ ...base, allDay: true, sd: d.date, ed: addDays(d.date, 1), key: d.date, a: 0, b: 0 });
+      else { const a = toMin(d.start); out.push({ ...base, key: d.date, a, b: Math.min(1440, Math.max(toMin(d.end), a + 15)) }); }
+    }
+    out.sort((x, y) => x.key.localeCompare(y.key) || x.a - y.a);
+    return (evCache = out);
+  }
+  const onDay = (e, k) => (e.allDay ? e.sd <= k && k < e.ed : e.key === k);
+  const evClass = (e) => (e.kind === "perso" ? "perso" : e.ue ? "ue" + (+e.ue % 8) : "uen");
+  const evById = (id) => getEvents().find((e) => e.id === id);
+  function until(P, e) {
+    const days = dayDiff(P.key, e.key);
+    if (days === 0) { const m = e.a - P.min; if (m < 60) return `dans ${m} min`; return `dans ${Math.floor(m / 60)} h${m % 60 ? " " + pad(m % 60) : ""}`; }
+    if (days === 1) return `demain à ${fmtH(e.a)}`;
+    return `${fmtKey(e.key, { weekday: "long", day: "numeric", month: "short" })} à ${fmtH(e.a)}`;
+  }
+
+  /* ---------- Héros + tuiles ---------- */
+  function renderNow() {
+    const P = paris(new Date());
+    $("#clock").textContent = `${pad(Math.floor(P.min / 60))}:${pad(P.min % 60)}`;
+    const h = Math.floor(P.min / 60);
+    $("#greet").textContent = h >= 18 || h < 5 ? "Bonsoir" : "Bonjour";
+    $("#today-label").textContent = cap(fmtKey(P.key, { weekday: "long", day: "numeric", month: "long", year: "numeric" }));
+    const evs = getEvents(), timed = evs.filter((e) => !e.allDay);
+    const cur = timed.filter((e) => e.key === P.key && e.a <= P.min && P.min < e.b);
+    const next = timed.find((e) => e.key > P.key || (e.key === P.key && e.a > P.min));
+    const allToday = evs.filter((e) => e.allDay && onDay(e, P.key));
+    const item = (label, e, meta, pct) => `<div class="now-item ${evClass(e)}${pct != null ? " live" : ""}">
+        <span class="now-label">${label}</span>
+        <button type="button" class="now-title" data-ev="${e.id}">${esc(e.title)}</button>
+        <span class="now-meta">${meta}</span>${pct != null ? `<div class="bar"><i style="width:${pct}%"></i></div>` : ""}</div>`;
+    let html = "";
+    if (!state.calendar && !state.perso.length) html = `<p class="now-empty">Ton planning s'affiche ici dès qu'il est chargé.</p>`;
+    else {
+      allToday.forEach((e) => (html += item("Aujourd'hui", e, "Toute la journée")));
+      cur.forEach((e) => (html += item("En ce moment", e, `<b>jusqu'à ${fmtH(e.b)}</b>${e.loc ? " · " + esc(cap(e.loc)) : ""}`, Math.round(((P.min - e.a) / (e.b - e.a)) * 100))));
+      if (next) html += item(cur.length ? "Ensuite" : "Prochain", next, `<b>${esc(until(P, next))}</b> · ${fmtH(next.a)} – ${fmtH(next.b)}${next.loc ? " · " + esc(cap(next.loc)) : ""}`);
+      else if (!cur.length) html += `<p class="now-empty">Plus rien de prévu au planning.</p>`;
+    }
+    $("#now-body").innerHTML = html;
+
+    const todays = timed.filter((e) => e.key === P.key && e.kind === "cours");
+    const left = todays.filter((e) => e.b > P.min).length;
+    const open = state.tasks.filter((t) => !t.done), urgent = open.filter((t) => lvlOf(t) === 0).length;
+    const a = !state.calendar ? "" : left ? `${left} cours encore aujourd'hui` : todays.length ? "Cours terminés pour aujourd'hui" : "Pas de cours aujourd'hui";
+    const b = db ? (open.length ? `${plural(open.length, "tâche")} à faire${urgent ? `, dont ${plural(urgent, "pressante")}` : ""}` : "aucune tâche en attente") : "";
+    $("#lede").textContent = [a, b].filter(Boolean).join(" · ") || "Ta journée en un coup d'œil : cours, tâches et entraînement.";
+
+    const ex = evs.find((e) => e.exam && e.kind === "cours" && !e.allDay && (e.key > P.key || (e.key === P.key && e.b > P.min)));
+    if (ex) {
+      const d = dayDiff(P.key, ex.key);
+      $("#exam-body").innerHTML = `<div style="display:grid;gap:8px" class="${evClass(ex)}">
+        ${ex.ue ? `<span class="ue-chip" style="justify-self:start">UE ${ex.ue}</span>` : ""}
+        <button type="button" class="now-title exam-title" data-ev="${ex.id}">${esc(ex.title)}</button>
+        <span class="sub">${esc(cap(fmtKey(ex.key, { weekday: "short", day: "numeric", month: "short" })))} · ${fmtH(ex.a)}</span>
+        <span class="chip" style="justify-self:start;background:var(--ev-bg);color:var(--ev-ink)">${d === 0 ? "Aujourd'hui" : d === 1 ? "Demain" : `Dans ${d} jours`}</span></div>`;
+    } else if (state.calendar) $("#exam-body").innerHTML = `<p class="sub">Aucune évaluation repérée dans le planning.</p>`;
+  }
+  const weightList = () => Object.keys(state.weights).filter(isKey).sort().map((d) => ({ date: d, kg: state.weights[d] }));
+  function weightDelta(ws) {
+    const last = ws[ws.length - 1]; if (!last) return null;
+    const older = ws.filter((w) => w.date <= addDays(last.date, -7)).pop();
+    return older ? last.kg - older.kg : null;
+  }
+  function trainedDaysThisWeek() {
+    const mon = mondayOf(todayKey()), end = addDays(mon, 7);
+    return Object.keys(state.loads).filter((d) => d >= mon && d < end && Object.keys(state.loads[d] || {}).length).length;
+  }
+  function renderTiles() {
+    const open = state.tasks.filter((t) => !t.done), urgent = open.filter((t) => lvlOf(t) === 0).length;
+    $("#tl-open").innerHTML = db ? `${open.length}<small>ouvertes${urgent ? ` · ${urgent} pressante${urgent > 1 ? "s" : ""}` : ""}</small>` : "–";
+    $("#tl-proj").innerHTML = Object.entries(LISTS).map(([k, m]) => `<span class="t-${k}">${m.name} · ${open.filter((t) => t.list === k).length}</span>`).join("");
+    const n = trainedDaysThisWeek(), g = goal();
+    $("#ss-val").innerHTML = db ? `${n}<small>/ ${g}</small>` : "–";
+    $("#goal-val").textContent = g;
+    const C = 2 * Math.PI * 26;
+    $("#ss-ring").setAttribute("stroke-dasharray", `${Math.min(1, n / g) * C} ${C}`);
+    $("#ss-ring").style.stroke = n >= g ? "var(--tilo)" : "var(--push)";
+    const ws = weightList(), last = ws[ws.length - 1];
+    $("#wt-val").innerHTML = last ? `${fr(last.kg)}<small>kg</small>` : "–";
+    const d = weightDelta(ws);
+    $("#wt-delta").hidden = d == null; if (d != null) $("#wt-delta").textContent = `${d > 0 ? "+" : ""}${fr(d)} kg / 7 j`;
+    $("#wt-spark").innerHTML = spark(ws.slice(-30).map((w) => w.kg), "var(--gen)", 240, 44);
+  }
+
+  /* ---------- Planning ---------- */
+  function laneLayout(list) {
+    let group = [], end = -1;
+    const flush = () => {
+      const lanes = [];
+      for (const e of group) { let i = lanes.findIndex((x) => x <= e.a); if (i < 0) { i = lanes.length; lanes.push(0); } lanes[i] = e.b; e.lane = i; }
+      group.forEach((e) => (e.n = lanes.length)); group = []; end = -1;
+    };
+    for (const e of list) { if (group.length && e.a >= end) flush(); group.push(e); end = Math.max(end, e.b); }
+    if (group.length) flush();
+  }
+  function weekLabel(mon, sun) {
+    const same = mon.slice(0, 7) === sun.slice(0, 7);
+    return same ? `${keyDate(mon).getUTCDate()} – ${fmtKey(sun, { day: "numeric", month: "long", year: "numeric" })}`
+      : `${fmtKey(mon, { day: "numeric", month: "short" })} – ${fmtKey(sun, { day: "numeric", month: "short", year: "numeric" })}`;
+  }
+  function renderWeek() {
+    const P = paris(new Date());
+    const mon = addDays(mondayOf(P.key), state.week * 7), sun = addDays(mon, 6);
+    $("#wk-label").textContent = (state.week === 0 ? "Cette semaine · " : "") + weekLabel(mon, sun);
+    $("#wk-today").disabled = state.week === 0;
+    const evs = getEvents(), days = [];
+    for (let i = 0; i < 7; i++) {
+      const k = addDays(mon, i);
+      const timed = evs.filter((e) => !e.allDay && e.key === k);
+      const allday = evs.filter((e) => e.allDay && onDay(e, k));
+      if (i >= 5 && !timed.length && !allday.some((e) => e.kind === "perso")) continue;
+      days.push({ k, timed, allday });
+    }
+    let h0 = 8, h1 = 18;
+    days.forEach((d) => d.timed.forEach((e) => { h0 = Math.min(h0, Math.floor(e.a / 60)); h1 = Math.max(h1, Math.ceil(e.b / 60)); }));
+    h0 = Math.max(0, h0); h1 = Math.min(24, h1);
+    const hours = h1 - h0, anyAll = days.some((d) => d.allday.length);
+    const dayHead = (k) => `<span class="dow">${fmtKey(k, { weekday: "short" }).replace(".", "")}</span><span class="dnum">${keyDate(k).getUTCDate()}</span>`;
+    const head = days.map((d) => `<div class="dh${d.k === P.key ? " today" : ""}">${dayHead(d.k)}</div>`).join("");
+    const allRow = anyAll ? `<div class="wk-row wk-all"><div class="gut lbl">Jour</div>${days.map((d) => `<div class="ad">${d.allday.map((e) => `<button type="button" class="ad-ev ${evClass(e)}" data-ev="${e.id}" title="${esc(e.title)}">${esc(e.title)}</button>`).join("")}</div>`).join("")}</div>` : "";
+    const gut = Array.from({ length: hours }, (_, i) => `<span style="top:${i * HOUR}px">${h0 + i}h</span>`).join("");
+    const cols = days.map((d) => {
+      laneLayout(d.timed);
+      const isToday = d.k === P.key;
+      const evHtml = d.timed.map((e) => {
+        const top = ((e.a - h0 * 60) / 60) * HOUR + 2, ht = Math.max(24, ((e.b - e.a) / 60) * HOUR - 4);
+        const past = d.k < P.key || (isToday && e.b <= P.min);
+        const lines = Math.max(1, Math.floor((ht - (ht > 76 ? 42 : 26)) / 16));
+        const tip = `${fmtH(e.a)} – ${fmtH(e.b)} · ${e.title}${e.loc ? " · " + e.loc : ""}`;
+        const pos = `top:${top}px;height:${ht}px;left:calc(${e.lane} * 100% / ${e.n} + 4px);width:calc(100% / ${e.n} - 8px)`;
+        if (ht < 44) return `<button type="button" class="ev ${evClass(e)}${past ? " past" : ""}" data-ev="${e.id}" title="${esc(tip)}" style="${pos};--lines:1;justify-content:center;padding-block:2px"><span class="t">${fmtH(e.a)} · ${esc(e.title)}</span></button>`;
+        return `<button type="button" class="ev ${evClass(e)}${past ? " past" : ""}${e.exam ? " exam" : ""}" data-ev="${e.id}" title="${esc(tip)}" style="${pos};--lines:${lines}">
+          <span class="m">${fmtH(e.a)} – ${fmtH(e.b)}${e.exam ? '<b class="flag">Éval</b>' : ""}</span><span class="t">${esc(e.title)}</span>${ht > 76 && e.loc ? `<span class="m">${esc(cap(e.loc))}</span>` : ""}</button>`;
+      }).join("");
+      const nowLine = isToday && P.min >= h0 * 60 && P.min <= h1 * 60 ? `<div class="nowline" style="top:${((P.min - h0 * 60) / 60) * HOUR}px"></div>` : "";
+      return `<div class="col${isToday ? " today" : ""}" data-key="${d.k}" data-h0="${h0}">${evHtml}${nowLine}</div>`;
+    }).join("");
+    $("#wk").innerHTML = `<div class="wk" style="--cols:${days.length};--hour:${HOUR}px">
+      <div class="wk-row wk-head"><div class="gut"></div>${head}</div>${allRow}
+      <div class="wk-row" style="height:${hours * HOUR}px"><div class="gut hours">${gut}</div>${cols}</div></div>`;
+    $("#agenda").innerHTML = days.map((d) => {
+      const items = [...d.allday, ...d.timed];
+      return `<div class="ag-day${d.k === P.key ? " today" : ""}"><div class="ag-date">${dayHead(d.k)}</div><div class="ag-items">${items.length ? items.map((e) => `<button type="button" class="ag-ev ${evClass(e)}" data-ev="${e.id}"><span class="m">${e.allDay ? "Toute la journée" : fmtH(e.a) + " – " + fmtH(e.b)}${e.exam ? '<b class="flag">Éval</b>' : ""}</span><span class="t">${esc(e.title)}</span>${e.loc ? `<span class="m">${esc(cap(e.loc))}</span>` : ""}</button>`).join("") : `<span class="ag-none">Rien de prévu</span>`}</div></div>`;
+    }).join("");
+    renderSync();
+  }
+  function renderSync() {
+    const el = $("#cal-sync"), s = state.calendar?.syncedAt;
+    el.hidden = !s; if (!s) return;
+    const d = new Date(s); if (isNaN(d)) { el.hidden = true; return; }
+    const P = paris(d), age = (Date.now() - d) / 36e5;
+    const when = P.key === todayKey() ? `aujourd'hui à ${fmtH(P.min)}` : `le ${fmtKey(P.key, { day: "numeric", month: "short" })} à ${fmtH(P.min)}`;
+    el.textContent = age > 36 ? `Synchro en retard, dernière ${when}` : `Cours synchronisés ${when}`;
+    el.classList.toggle("late", age > 36);
+  }
+
+  /* ---------- Modale ---------- */
+  let lastFocus = null;
+  function openModal(html, mount) {
+    lastFocus = document.activeElement;
+    const back = $("#modal");
+    back.innerHTML = `<div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">${html}</div>`;
+    back.hidden = false;
+    const card = $(".modal", back);
+    card.addEventListener("click", (e) => { if (e.target.closest("[data-m=close]")) closeModal(); });
+    if (mount) mount(card);
+    const f = $("[autofocus]", card) || $("button, input", card); if (f) f.focus();
+  }
+  function closeModal() { const back = $("#modal"); back.hidden = true; back.innerHTML = ""; if (lastFocus && lastFocus.isConnected) lastFocus.focus(); }
+  function openDetail(id) {
+    const e = evById(id); if (!e) return;
+    const dayLong = (k) => cap(fmtKey(k, { weekday: "long", day: "numeric", month: "long" }));
+    const when = e.allDay
+      ? (e.ed > addDays(e.sd, 1) ? `Du ${fmtKey(e.sd, { day: "numeric", month: "long" })} au ${fmtKey(addDays(e.ed, -1), { day: "numeric", month: "long" })}` : `${dayLong(e.sd)}, toute la journée`)
+      : `${dayLong(e.key)}, ${fmtH(e.a)} – ${fmtH(e.b)}`;
+    const rows = [["Quand", when], e.loc && ["Lieu", cap(e.loc)], e.teacher && ["Intervenant", e.teacher], e.ue && ["UE", e.ue], e.note && ["Note", e.note]].filter(Boolean);
+    const kind = e.kind === "perso" ? "Perso" : e.exam ? "Évaluation" : e.allDay ? "Calendrier" : "Cours";
+    openModal(`<div class="md-head ${evClass(e)}"><span class="md-kind">${kind}</span><h2 id="modal-title">${esc(e.title)}</h2></div>
+      <dl class="md-rows">${rows.map(([k, v]) => `<div><dt>${k}</dt><dd>${esc(v)}</dd></div>`).join("")}</dl>
+      ${e.kind === "cours" && e.raw && e.raw !== e.title ? `<p class="md-raw">Intitulé complet : ${esc(e.raw)}</p>` : ""}
+      <div class="md-actions">${e.kind === "perso"
+        ? `<button type="button" class="btn ghost" data-m="del">Supprimer</button><button type="button" class="btn ghost" data-m="close">Fermer</button><button type="button" class="btn perso" data-m="edit">Modifier</button>`
+        : `<button type="button" class="btn" data-m="close">Fermer</button>`}</div>`, (card) => {
+      card.addEventListener("click", async (ev) => {
+        const b = ev.target.closest("[data-m]"); if (!b) return;
+        if (b.dataset.m === "edit") { const doc = state.perso.find((p) => p.id === e.docId); if (doc) openForm(doc); }
+        if (b.dataset.m === "del") {
+          if (!b.dataset.confirm) { b.dataset.confirm = "1"; b.textContent = "Confirmer la suppression"; b.className = "btn danger"; return; }
+          if (await write(() => db.doc("perso/" + e.docId).delete(), "Événement supprimé")) closeModal();
+        }
+      });
+    });
+  }
+  function openForm(doc, preset = {}) {
+    const d = doc || {};
+    const date = d.date || preset.date || todayKey();
+    const start = d.start || preset.start || "10:00", end = d.end || preset.end || "11:00";
+    openModal(`<form class="pe-form" id="pe-form" novalidate>
+      <div class="md-head perso"><span class="md-kind">${doc ? "Modifier" : "Événement perso"}</span><h2 id="modal-title">${doc ? esc(d.title) : "Ajouter au planning"}</h2></div>
+      <label class="field"><span>Titre</span><input id="pe-title" type="text" maxlength="120" placeholder="Dentiste, coiffeur, anniversaire…" value="${esc(d.title || "")}" autofocus></label>
+      <div class="field-row">
+        <label class="field"><span>Date</span><input id="pe-date" type="date" value="${esc(date)}"></label>
+        <label class="checkline"><input id="pe-allday" type="checkbox"${d.allDay ? " checked" : ""}>Toute la journée</label>
+      </div>
+      <div class="field-row" id="pe-times"${d.allDay ? " hidden" : ""}>
+        <label class="field"><span>Début</span><input id="pe-start" type="time" step="300" value="${esc(start)}"></label>
+        <label class="field"><span>Fin</span><input id="pe-end" type="time" step="300" value="${esc(end)}"></label>
+      </div>
+      <label class="field"><span>Lieu<em>facultatif</em></span><input id="pe-loc" type="text" maxlength="120" value="${esc(d.loc || "")}"></label>
+      <label class="field"><span>Note<em>facultatif</em></span><input id="pe-note" type="text" maxlength="200" value="${esc(d.note || "")}"></label>
+      <p class="form-err" id="pe-err" hidden></p>
+      <div class="md-actions"><button type="button" class="btn ghost" data-m="close">Annuler</button><button type="submit" class="btn perso">${doc ? "Enregistrer" : "Ajouter"}</button></div>
+    </form>`, (card) => {
+      $("#pe-allday", card).addEventListener("change", (e) => ($("#pe-times", card).hidden = e.target.checked));
+      $("#pe-start", card).addEventListener("change", () => {
+        const s = toMin($("#pe-start", card).value);
+        if (toMin($("#pe-end", card).value) <= s) $("#pe-end", card).value = hhmm(Math.min(s + 60, 23 * 60 + 55));
+      });
+      $("#pe-form", card).addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const allDay = $("#pe-allday", card).checked;
+        const data = {
+          title: $("#pe-title", card).value.trim(), date: $("#pe-date", card).value, allDay,
+          start: allDay ? "" : $("#pe-start", card).value, end: allDay ? "" : $("#pe-end", card).value,
+          loc: $("#pe-loc", card).value.trim(), note: $("#pe-note", card).value.trim(), createdAt: d.createdAt || Date.now(),
+        };
+        const err = $("#pe-err", card);
+        const fail = (m) => { err.textContent = m; err.hidden = false; };
+        if (!data.title) return fail("Donne un titre à l'événement.");
+        if (!isKey(data.date)) return fail("Choisis une date.");
+        if (!allDay && (!data.start || !data.end || toMin(data.end) <= toMin(data.start))) return fail("L'heure de fin doit être après l'heure de début.");
+        const ok = await write(() => (doc ? db.doc("perso/" + doc.id).set(data) : db.collection("perso").add(data)), doc ? "Événement modifié" : "Ajouté au planning");
+        if (ok) { closeModal(); state.week = Math.round(dayDiff(mondayOf(todayKey()), mondayOf(data.date)) / 7); renderWeek(); }
+      });
+    });
+  }
+
+  /* ---------- Tâches ---------- */
+  function buildTaskPanels() {
+    $$(".tlist").forEach((panel) => {
+      const key = panel.dataset.list, meta = LISTS[key];
+      panel.innerHTML = `
+        <header class="tl-head"><span class="mark" aria-hidden="true">${meta.letter}</span><div><h3>${meta.name}</h3><p class="sub" data-sub>&nbsp;</p></div></header>
+        <div class="tl-progress" aria-hidden="true"><i data-prog style="width:0%"></i></div>
+        <form class="tl-form">
+          <div class="tl-add"><input type="text" id="add-${key}" placeholder="${meta.ph}" aria-label="${meta.ph}" maxlength="200"><button type="submit" aria-label="Ajouter la tâche">+</button></div>
+          <div class="lvl-row"><span class="lvl-cap" id="lvl-cap-${key}">Urgence</span>
+            <div class="lvl-pick" role="radiogroup" aria-labelledby="lvl-cap-${key}">${LEVELS.map((l, i) => `<button type="button" role="radio" class="lvl${i}" data-pick="${i}" aria-checked="${i === state.addLevel[key]}" title="${l.label} : ${l.hint}">${l.short}</button>`).join("")}</div></div>
+        </form>
+        <ul class="items" data-open></ul>
+        <button type="button" class="expand" data-expand aria-expanded="false" hidden></button>
+        <details class="tl-done"><summary data-donesum>Terminées · 0</summary><ul class="items" data-done></ul></details>`;
+      $("form", panel).addEventListener("submit", async (ev) => {
+        ev.preventDefault();
+        const input = $("input", panel), title = input.value.trim();
+        if (!title) { input.focus(); return; }
+        const level = state.addLevel[key];
+        input.value = "";
+        // Si la nouvelle tâche tombe hors des premières affichées, on développe la liste pour qu'elle reste visible.
+        const ahead = state.tasks.filter((t) => t.list === key && !t.done && lvlOf(t) <= level).length;
+        if (ahead >= COLLAPSED && !state.expanded[key]) { state.expanded[key] = true; store.set("expanded." + key, "1"); renderTasks(); }
+        const ok = await write(() => db.collection("tasks").add({ title, list: key, level, done: false, createdAt: Date.now() }), `Ajoutée en « ${LEVELS[level].label} »`);
+        if (!ok) input.value = title;
+        input.focus();
+      });
+      panel.addEventListener("click", (ev) => {
+        const pick = ev.target.closest("[data-pick]");
+        if (pick) {
+          state.addLevel[key] = +pick.dataset.pick;
+          $$("[data-pick]", panel).forEach((b) => b.setAttribute("aria-checked", String(b === pick)));
+          return;
+        }
+        if (ev.target.closest("[data-expand]")) {
+          state.expanded[key] = !state.expanded[key];
+          store.set("expanded." + key, state.expanded[key] ? "1" : "");
+          renderTasks();
+          return;
+        }
+        const btn = ev.target.closest("button[data-act]"); if (!btn) return;
+        const id = btn.closest("[data-id]").dataset.id, t = state.tasks.find((x) => x.id === id); if (!t) return;
+        if (btn.dataset.act === "del") write(() => db.doc("tasks/" + id).delete(), "Tâche supprimée");
+        if (btn.dataset.act === "lvl") toggleLvlMenu(btn, t);
+      });
+      panel.addEventListener("keydown", (ev) => {
+        const pick = ev.target.closest("[data-pick]");
+        if (!pick || (ev.key !== "ArrowRight" && ev.key !== "ArrowLeft")) return;
+        ev.preventDefault();
+        const i = (+pick.dataset.pick + (ev.key === "ArrowRight" ? 1 : 3)) % 4;
+        const nb = $(`[data-pick="${i}"]`, panel); nb.click(); nb.focus();
+      });
+      panel.addEventListener("change", (ev) => {
+        if (!ev.target.classList.contains("check")) return;
+        const id = ev.target.closest("[data-id]").dataset.id, done = ev.target.checked;
+        write(() => db.doc("tasks/" + id).update({ done, doneAt: done ? Date.now() : null }), done ? "Bien joué" : null);
+      });
+    });
+  }
+  function taskItem(t) {
+    const L = lvlOf(t);
+    return `<li class="item lvl${L}${t.done ? " done" : ""}" data-id="${esc(t.id)}">
+      <input type="checkbox" class="check" ${t.done ? "checked" : ""} aria-label="${t.done ? "Rouvrir" : "Terminer"} : ${esc(t.title)}">
+      <span class="txt">${esc(t.title)}</span>
+      ${t.done ? "<span></span>" : `<button type="button" class="lvl lvl${L}" data-act="lvl" aria-haspopup="menu" title="Urgence : ${LEVELS[L].label}. Clique pour changer" aria-label="Urgence : ${LEVELS[L].label}, changer">${LEVELS[L].short}</button>`}
+      <button type="button" class="icon-btn del" data-act="del" title="Supprimer" aria-label="Supprimer : ${esc(t.title)}">${ICON_X}</button></li>`;
+  }
+  function renderTasks() {
+    const weekStartTs = keyDate(mondayOf(todayKey())).getTime() - 12 * 36e5;
+    $$(".tlist").forEach((panel) => {
+      const key = panel.dataset.list;
+      const all = state.tasks.filter((t) => t.list === key);
+      const open = all.filter((t) => !t.done).sort((a, b) => lvlOf(a) - lvlOf(b) || (a.createdAt || 0) - (b.createdAt || 0));
+      const done = all.filter((t) => t.done).sort((a, b) => (b.doneAt || 0) - (a.doneAt || 0));
+      const doneWeek = done.filter((t) => (t.doneAt || 0) >= weekStartTs).length;
+      const urgent = open.filter((t) => lvlOf(t) === 0).length;
+      $("[data-sub]", panel).textContent = db
+        ? `${open.length} à faire${urgent ? ` · ${urgent} pressante${urgent > 1 ? "s" : ""}` : ""} · ${doneWeek} faite${doneWeek > 1 ? "s" : ""} cette semaine`
+        : "Tes tâches s'affichent ici";
+      $("[data-prog]", panel).style.width = (open.length + doneWeek ? Math.round((doneWeek / (open.length + doneWeek)) * 100) : 0) + "%";
+      const exp = !!state.expanded[key];
+      // Toujours rangées de Pressant à Dans longtemps ; repliée, la liste ne montre que les premières.
+      const shown = exp ? open : open.slice(0, COLLAPSED);
+      $("[data-open]", panel).innerHTML = !open.length
+        ? `<li class="empty">${db ? "Rien en attente. Ajoute ta prochaine tâche." : "Chargement de tes tâches…"}</li>`
+        : LEVELS.map((l, i) => {
+          const g = shown.filter((t) => lvlOf(t) === i);
+          return g.length ? `<li class="grp lvl${i}" role="presentation">${l.label}<span>${open.filter((t) => lvlOf(t) === i).length}</span></li>${g.map(taskItem).join("")}` : "";
+        }).join("");
+      const btn = $("[data-expand]", panel), more = open.length - COLLAPSED;
+      btn.hidden = !exp && more <= 0;
+      btn.setAttribute("aria-expanded", String(exp));
+      btn.innerHTML = exp ? `Réduire ${ICON_CHEV}` : `Développer · ${more} autre${more > 1 ? "s" : ""} tâche${more > 1 ? "s" : ""} ${ICON_CHEV}`;
+      $("[data-donesum]", panel).textContent = `Terminées · ${done.length}`;
+      $("[data-done]", panel).innerHTML = done.slice(0, 40).map(taskItem).join("");
+    });
+  }
+  let lvlMenu = null;
+  function closeLvlMenu(refocus) {
+    if (!lvlMenu) return;
+    const owner = lvlMenu.owner; lvlMenu.remove(); lvlMenu = null;
+    if (refocus && owner && owner.isConnected) owner.focus();
+  }
+  function toggleLvlMenu(btn, task) {
+    if (lvlMenu && lvlMenu.owner === btn) { closeLvlMenu(true); return; }
+    closeLvlMenu();
+    const cur = lvlOf(task);
+    const m = document.createElement("div");
+    m.className = "lvl-menu"; m.setAttribute("role", "menu"); m.setAttribute("aria-label", "Urgence");
+    m.innerHTML = LEVELS.map((l, i) => `<button type="button" role="menuitemradio" class="lvl${i}" data-lv="${i}" aria-checked="${i === cur}"><span><b>${l.label}</b><small>${l.hint}</small></span></button>`).join("");
+    m.owner = btn; m.openY = scrollY;
+    document.body.appendChild(m);
+    const r = btn.getBoundingClientRect(), mw = m.offsetWidth, mh = m.offsetHeight;
+    const left = Math.max(8, Math.min(r.right - mw, innerWidth - mw - 8));
+    let top = r.bottom + 6; if (top + mh > innerHeight - 8) top = Math.max(8, r.top - mh - 6);
+    m.style.left = left + "px"; m.style.top = top + "px";
+    m.addEventListener("click", (ev) => {
+      const b = ev.target.closest("[data-lv]"); if (!b) return;
+      const lv = +b.dataset.lv;
+      closeLvlMenu(true);
+      if (lv !== cur) write(() => db.doc("tasks/" + task.id).update({ level: lv }), `Passée en « ${LEVELS[lv].label} »`);
+    });
+    m.addEventListener("keydown", (ev) => {
+      const items = $$("[data-lv]", m), i = items.indexOf(document.activeElement);
+      if (ev.key === "ArrowDown" || ev.key === "ArrowUp") { ev.preventDefault(); items[(i + (ev.key === "ArrowDown" ? 1 : items.length - 1)) % items.length].focus(); }
+      if (ev.key === "Tab") closeLvlMenu(true);
+    });
+    lvlMenu = m;
+    ($("[aria-checked=true]", m) || $("button", m)).focus();
+  }
+
+  /* ---------- Tableau des charges ---------- */
+  function tableDates() { const end = state.tEnd || todayKey(); return Array.from({ length: state.tRange }, (_, i) => addDays(end, -i)); }
+  function prMap() {
+    const pr = {};
+    for (const d of Object.keys(state.loads)) for (const [id, v] of Object.entries(state.loads[d] || {})) if (typeof v === "number" && v > (pr[id] || 0)) pr[id] = v;
+    return pr;
+  }
+  function renderTable() {
+    const today = todayKey(), dates = tableDates();
+    tableDay = today;
+    $("#t-end").value = state.tEnd || today;
+    $("#t-end").max = today;
+    $("#t-next").disabled = !state.tEnd;
+    $("#t-today").hidden = !state.tEnd;
+    const n = dates.length;
+    const head = `<tr><th class="rowhead" scope="col">Exercice</th>${dates.map((d) => `<th scope="col"${d === today ? ' class="today"' : ""}><span class="wd">${fmtKey(d, { weekday: "short" }).replace(".", "")}</span>${fmtKey(d, { day: "2-digit", month: "2-digit" })}</th>`).join("")}</tr>`;
+    const cells = (rowId, label) => dates.map((d) => `<td${d === today ? ' class="tcol"' : ""}><input type="text" class="cell" id="c-${esc(rowId)}-${d}" data-r="${esc(rowId)}" data-d="${d}" inputmode="decimal" autocomplete="off" aria-label="${esc(label)}, ${fmtKey(d, { weekday: "long", day: "numeric", month: "long" })}"></td>`).join("");
+    const sec = (cls, label) => `<tr class="sec ${cls}"><td class="rowhead">${label}</td><td colspan="${n}"></td></tr>`;
+    let body = sec("sec-weight", "Poids du corps")
+      + `<tr class="row-w"><th class="rowhead" scope="row"><div class="rh"><div class="rh-name"><span class="nm">Poids (kg)</span><span class="prb none" id="w-badge"></span></div></div></th>${cells("w", "Poids")}</tr>`;
+    for (const g of ["push", "pull"]) {
+      const list = exList(g), G = g === "push" ? "Push" : "Pull";
+      body += sec("sec-" + g, G);
+      list.forEach((ex, i) => {
+        body += `<tr class="row-${g}"><th class="rowhead" scope="row"><div class="rh">
+          <div class="rh-move"><button type="button" id="mv-up-${esc(ex.id)}" data-mv="-1" data-g="${g}" data-id="${esc(ex.id)}"${i === 0 ? " disabled" : ""} aria-label="Monter ${esc(ex.name)}">${ICON_UP}</button><button type="button" id="mv-down-${esc(ex.id)}" data-mv="1" data-g="${g}" data-id="${esc(ex.id)}"${i === list.length - 1 ? " disabled" : ""} aria-label="Descendre ${esc(ex.name)}">${ICON_DOWN}</button></div>
+          <div class="rh-name"><span class="nm" title="${esc(ex.name)}">${esc(ex.name)}</span><span class="prb" data-pr="${esc(ex.id)}"></span></div>
+          <button type="button" class="icon-btn rh-del" data-del="${esc(ex.id)}" data-g="${g}" title="Retirer l'exercice" aria-label="Retirer ${esc(ex.name)}">${ICON_TRASH}</button></div></th>${cells(ex.id, ex.name)}</tr>`;
+      });
+      body += `<tr class="addrow row-${g}"><td class="rowhead"><form class="add-ex" data-g="${g}"><input type="text" id="add-ex-${g}" maxlength="60" placeholder="+ Exercice ${G}" aria-label="Ajouter un exercice ${G}"></form></td><td colspan="${n}"></td></tr>`;
+    }
+    $("#sheet").innerHTML = `<table class="sheet"><thead>${head}</thead><tbody>${body}</tbody></table>`;
+    fillTable();
+  }
+  function fillTable() {
+    const pr = prMap();
+    $$("#sheet .cell").forEach((inp) => {
+      const r = inp.dataset.r, d = inp.dataset.d;
+      const v = r === "w" ? state.weights[d] : (state.loads[d] || {})[r];
+      const has = typeof v === "number";
+      if (document.activeElement !== inp) inp.value = has ? frKg(v) : "";
+      const td = inp.parentElement;
+      td.classList.toggle("has", has);
+      td.classList.toggle("pr", r !== "w" && has && v > 0 && v === pr[r]);
+    });
+    $$("#sheet [data-pr]").forEach((el) => { const p = pr[el.dataset.pr]; el.textContent = p ? `PR ${frKg(p)} kg` : "PR –"; el.classList.toggle("none", !p); });
+    const ws = weightList(), last = ws[ws.length - 1], badge = $("#w-badge");
+    if (badge) badge.textContent = last ? `Dernier : ${frKg(last.kg)} kg` : "Pas encore de pesée";
+  }
+  function stored(r, d) { const v = r === "w" ? state.weights[d] : (state.loads[d] || {})[r]; return typeof v === "number" ? v : null; }
+  function commitCell(inp) {
+    const r = inp.dataset.r, d = inp.dataset.d, prev = stored(r, d);
+    const raw = inp.value.replace(/\s/g, "").replace(",", ".");
+    let v = null;
+    if (raw !== "") {
+      v = Number(raw);
+      const max = r === "w" ? 400 : 1000;
+      if (!isFinite(v) || v < 0 || v > max) { toast("Entre un nombre en kg, par exemple 82,5."); inp.value = prev == null ? "" : frKg(prev); return; }
+      v = Math.round(v * 100) / 100;
+    }
+    if (v === prev) { inp.value = v == null ? "" : frKg(v); return; }
+    if (!db) { toast("Entre ton code d'accès pour enregistrer."); inp.value = prev == null ? "" : frKg(prev); return; }
+    // La saisie reste affichée (couche « pend ») jusqu'à ce que sa dernière écriture soit faite ; en cas d'échec, on revient à la base.
+    let path, fn, confirm, clear;
+    if (r === "w") {
+      pend.weights[d] = v;
+      path = "weights/" + d;
+      fn = () => (v == null ? db.doc(path).delete() : db.doc(path).set({ date: d, kg: v }));
+      confirm = () => { if (v == null) delete server.weights[d]; else server.weights[d] = v; };
+      clear = () => delete pend.weights[d];
+    } else {
+      const map = { ...(state.loads[d] || {}) };
+      if (v == null) delete map[r]; else map[r] = v;
+      pend.loads[d] = map;
+      path = "loads/" + d;
+      fn = () => (Object.keys(map).length ? db.doc(path).set({ date: d, kg: map }) : db.doc(path).delete());
+      confirm = () => { if (Object.keys(map).length) server.loads[d] = map; else delete server.loads[d]; };
+      clear = () => delete pend.loads[d];
+    }
+    const p = enqueue(path, fn);
+    p.then((ok) => {
+      if (ok) confirm();
+      if (queues[path] === p) { clear(); mergeData(); fillTable(); renderTiles(); renderCharts(); }
+    });
+    mergeData();
+    inp.value = v == null ? "" : frKg(v);
+    fillTable(); renderTiles(); renderCharts();
+  }
+  function moveFocus(inp, dr, dc) {
+    const rows = $$("#sheet tbody tr").filter((tr) => tr.querySelector(".cell"));
+    const tr = inp.closest("tr"), ri = rows.indexOf(tr), ci = $$(".cell", tr).indexOf(inp);
+    const target = dr ? rows[ri + dr] && $$(".cell", rows[ri + dr])[ci] : $$(".cell", tr)[ci + dc];
+    if (!target) return false;
+    target.focus(); target.select(); target.scrollIntoView({ block: "nearest", inline: "nearest" });
+    return true;
+  }
+  // Re-rend le tableau sans perdre la case (ou le bouton) où se trouve le curseur, ni ce qui y est tapé.
+  function renderTableKeepFocus() {
+    const a = document.activeElement;
+    const keep = a && a.id && $("#sheet").contains(a)
+      ? { id: a.id, text: a.tagName === "INPUT", value: a.value, s: a.selectionStart, e: a.selectionEnd } : null;
+    renderTable();
+    if (!keep) return;
+    let el = document.getElementById(keep.id); if (!el) return;
+    if (el.disabled) el = el.parentElement.querySelector("button:not(:disabled)") || el;
+    if (keep.text) el.value = keep.value;
+    el.focus({ preventScroll: true });
+    if (keep.text && keep.s != null) try { el.setSelectionRange(keep.s, keep.e); } catch (_) {}
+  }
+  function saveExercises(next, msg) {
+    pend.exercises = next; state.exercises = next;
+    renderTableKeepFocus(); renderCharts();
+    const p = enqueue("config/exercises", () => db.doc("config/exercises").set(next), msg);
+    p.then((ok) => {
+      if (ok) server.exercises = next;
+      if (queues["config/exercises"] !== p) return;
+      pend.exercises = null;
+      if (!ok) { state.exercises = server.exercises; renderTableKeepFocus(); renderCharts(); }
+    });
+  }
+  const cloneEx = () => ({ push: exList("push").map((x) => ({ id: x.id, name: x.name })), pull: exList("pull").map((x) => ({ id: x.id, name: x.name })) });
+
+  /* ---------- Courbes ---------- */
+  function smooth(p) {
+    const n = p.length;
+    if (n < 3) return p.map((q, i) => `${i ? "L" : "M"}${q.X.toFixed(1)},${q.Y.toFixed(1)}`).join("");
+    const dx = [], m = [], t = [];
+    for (let i = 0; i < n - 1; i++) { dx[i] = p[i + 1].X - p[i].X; m[i] = dx[i] ? (p[i + 1].Y - p[i].Y) / dx[i] : 0; }
+    t[0] = m[0]; t[n - 1] = m[n - 2];
+    for (let i = 1; i < n - 1; i++) t[i] = m[i - 1] * m[i] <= 0 ? 0 : (m[i - 1] + m[i]) / 2;
+    for (let i = 0; i < n - 1; i++) {
+      if (!m[i]) { t[i] = 0; t[i + 1] = 0; continue; }
+      const a = t[i] / m[i], b = t[i + 1] / m[i], s = a * a + b * b;
+      if (s > 9) { const k = 3 / Math.sqrt(s); t[i] = k * a * m[i]; t[i + 1] = k * b * m[i]; }
+    }
+    let d = `M${p[0].X.toFixed(1)},${p[0].Y.toFixed(1)}`;
+    for (let i = 0; i < n - 1; i++) { const h = dx[i] / 3; d += `C${(p[i].X + h).toFixed(1)},${(p[i].Y + t[i] * h).toFixed(1)} ${(p[i + 1].X - h).toFixed(1)},${(p[i + 1].Y - t[i + 1] * h).toFixed(1)} ${p[i + 1].X.toFixed(1)},${p[i + 1].Y.toFixed(1)}`; }
+    return d;
+  }
+  function spark(vals, color, w, h) {
+    if (vals.length < 2) return "";
+    const lo = Math.min(...vals), hi = Math.max(...vals), r = hi - lo || 1;
+    const P = vals.map((v, i) => ({ X: 4 + (i / (vals.length - 1)) * (w - 8), Y: 5 + (1 - (v - lo) / r) * (h - 10) }));
+    const last = P[P.length - 1];
+    return `<svg class="spark" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" aria-hidden="true"><path d="${smooth(P)}" fill="none" style="stroke:${color}" stroke-width="2" stroke-linecap="round" vector-effect="non-scaling-stroke"/><circle cx="${last.X}" cy="${last.Y}" r="3.5" style="fill:${color}"/></svg>`;
+  }
+  function niceRange(min, max) {
+    if (max - min < 1) { const c = (min + max) / 2; min = c - 0.5; max = c + 0.5; }
+    const span = max - min, step0 = Math.pow(10, Math.floor(Math.log10(span / 4)));
+    const step = [1, 2, 2.5, 5, 10].map((k) => k * step0).find((s) => span / s <= 5) || step0 * 10;
+    return { lo: Math.floor(min / step) * step, hi: Math.ceil(max / step) * step, step };
+  }
+  const emptyChart = (msg) => `<div class="chart-empty">${msg}</div>`;
+  function lineChart(box, pts, color, unit, gid) {
+    if (pts.length < 2) {
+      box.innerHTML = emptyChart(pts.length ? "Encore une valeur et la courbe apparaît." : db ? "Pas encore de données sur cette période. Remplis le tableau au-dessus." : "Chargement…");
+      box.onpointermove = box.onpointerleave = null; return;
+    }
+    // Dessiné à la largeur réelle de la carte pour que les libellés gardent leur taille sur téléphone.
+    const W = Math.round(Math.min(720, Math.max(280, box.clientWidth || 640))), H = W < 480 ? 210 : 240, L = 44, R = 18, T = 18, B = 30;
+    const xs = pts.map((p) => keyDate(p.k).getTime()), ys = pts.map((p) => p.y);
+    const x0 = Math.min(...xs), x1 = Math.max(...xs);
+    const { lo, hi, step } = niceRange(Math.min(...ys), Math.max(...ys));
+    const X = (t) => L + ((t - x0) / (x1 - x0 || 1)) * (W - L - R);
+    const Y = (v) => T + (1 - (v - lo) / (hi - lo)) * (H - T - B);
+    let grid = "";
+    for (let i = 0; lo + i * step <= hi + 1e-9; i++) { const v = Math.round((lo + i * step) * 1000) / 1000; grid += `<line x1="${L}" x2="${W - R}" y1="${Y(v)}" y2="${Y(v)}" style="stroke:var(--line-2)"/><text x="${L - 8}" y="${Y(v) + 3.5}" text-anchor="end">${frKg(v)}</text>`; }
+    let xl = "";
+    const ticks = Math.min(W < 480 ? 3 : 4, pts.length - 1);
+    for (let i = 0; i <= ticks; i++) { const t = x0 + (i / ticks) * (x1 - x0); xl += `<text x="${X(t)}" y="${H - 8}" text-anchor="${i === 0 ? "start" : i === ticks ? "end" : "middle"}">${new Date(t).toLocaleDateString("fr-FR", { timeZone: "UTC", day: "2-digit", month: "2-digit" })}</text>`; }
+    const P = pts.map((p, i) => ({ X: X(xs[i]), Y: Y(p.y), p }));
+    const line = smooth(P), last = P[P.length - 1];
+    const area = `${line}L${last.X.toFixed(1)},${Y(lo)}L${P[0].X.toFixed(1)},${Y(lo)}Z`;
+    box.innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Courbe : dernière valeur ${fr(last.p.y)} ${unit}">
+      <defs><linearGradient id="g-${gid}" x1="0" x2="0" y1="0" y2="1"><stop offset="0" style="stop-color:${color};stop-opacity:.22"/><stop offset="1" style="stop-color:${color};stop-opacity:0"/></linearGradient></defs>
+      ${grid}${xl}<path d="${area}" fill="url(#g-${gid})"/><path d="${line}" fill="none" style="stroke:${color}" stroke-width="2.5" stroke-linecap="round"/>
+      ${P.length <= 40 ? P.slice(0, -1).map((q) => `<circle cx="${q.X}" cy="${q.Y}" r="2.6" style="fill:var(--surface);stroke:${color}" stroke-width="1.6"/>`).join("") : ""}
+      <circle cx="${last.X}" cy="${last.Y}" r="9" style="fill:${color}" opacity=".15"/><circle cx="${last.X}" cy="${last.Y}" r="4.5" style="fill:${color}"/>
+      <line class="guide" x1="0" x2="0" y1="${T}" y2="${H - B}" style="stroke:var(--muted)" stroke-dasharray="3 3" opacity="0"/>
+      <circle class="hdot" r="5" style="fill:var(--surface);stroke:${color}" stroke-width="2.5" opacity="0"/></svg><div class="tip" hidden></div>`;
+    const svg = $("svg", box), tip = $(".tip", box), guide = $(".guide", box), dot = $(".hdot", box);
+    box.onpointermove = (ev) => {
+      const r = svg.getBoundingClientRect(), k = r.width / W, x = (ev.clientX - r.left) / k;
+      let best = P[0]; for (const q of P) if (Math.abs(q.X - x) < Math.abs(best.X - x)) best = q;
+      guide.setAttribute("x1", best.X); guide.setAttribute("x2", best.X); guide.setAttribute("opacity", ".6");
+      dot.setAttribute("cx", best.X); dot.setAttribute("cy", best.Y); dot.setAttribute("opacity", "1");
+      tip.hidden = false;
+      tip.innerHTML = `${frKg(best.p.y)} ${unit}<small>${esc(cap(fmtKey(best.p.k, { weekday: "short", day: "numeric", month: "long" })))}</small>`;
+      tip.style.left = Math.min(Math.max(best.X * k, 60), r.width - 60) + "px"; tip.style.top = best.Y * k + "px";
+    };
+    box.onpointerleave = () => { tip.hidden = true; guide.setAttribute("opacity", "0"); dot.setAttribute("opacity", "0"); };
+  }
+  const inRange = (k) => !state.cRange || dayDiff(k, todayKey()) <= state.cRange;
+  const loadPoints = (id) => Object.keys(state.loads).filter((d) => isKey(d) && inRange(d) && typeof (state.loads[d] || {})[id] === "number").sort().map((d) => ({ k: d, y: state.loads[d][id] }));
+  function renderCharts() {
+    const rangeLabel = C_RANGES.find((r) => r[0] === state.cRange)[1].toLowerCase();
+    const wpts = weightList().filter((w) => inRange(w.date)).map((w) => ({ k: w.date, y: w.kg }));
+    lineChart($("#c-weight"), wpts, "var(--gen)", "kg", "w");
+    $("#cw-kpi").innerHTML = wpts.length >= 2 ? (() => { const d = wpts[wpts.length - 1].y - wpts[0].y; return `${d > 0 ? "+" : ""}${fr(d)} kg<small>sur la période</small>`; })() : "";
+    $("#cw-sub").textContent = `${plural(wpts.length, "pesée")} · ${rangeLabel}`;
+
+    const exs = allEx();
+    if (!exs.some((x) => x.id === state.chartEx)) state.chartEx = (exs.find((x) => loadPoints(x.id).length) || exs[0] || {}).id || null;
+    const sel = $("#c-ex");
+    sel.innerHTML = ["push", "pull"].map((g) => `<optgroup label="${g === "push" ? "Push" : "Pull"}">${exs.filter((x) => x.g === g).map((x) => `<option value="${esc(x.id)}">${esc(x.name)}</option>`).join("")}</optgroup>`).join("");
+    if (state.chartEx) sel.value = state.chartEx;
+    const cur = exs.find((x) => x.id === state.chartEx);
+    const lpts = cur ? loadPoints(cur.id) : [];
+    lineChart($("#c-load"), lpts, cur && cur.g === "pull" ? "var(--pull)" : "var(--push)", "kg", "l");
+    const pr = prMap();
+    $("#cl-sub").textContent = cur ? `${cur.name}${pr[cur.id] ? ` · record ${frKg(pr[cur.id])} kg` : ""} · ${rangeLabel}` : "Ajoute un exercice dans le tableau";
+
+    const cards = exs.map((x) => {
+      const p = loadPoints(x.id); if (!p.length) return "";
+      const lastV = p[p.length - 1].y, d = lastV - p[0].y;
+      return `<button type="button" class="mini ${x.g}${x.id === state.chartEx ? " on" : ""}" data-chart-ex="${esc(x.id)}" aria-pressed="${x.id === state.chartEx}">
+        <span class="mn" title="${esc(x.name)}">${esc(x.name)}</span>
+        <span class="mv">${frKg(lastV)}<small>kg</small></span>
+        <span class="md${d > 0 ? " up" : ""}">${p.length < 2 ? "1 valeur" : d === 0 ? "Stable" : `${d > 0 ? "+" : ""}${frKg(d)} kg`}</span>
+        ${spark(p.map((q) => q.y), x.g === "pull" ? "var(--pull)" : "var(--push)", 160, 30)}</button>`;
+    }).join("");
+    $("#minis").innerHTML = cards || `<div class="chart-empty" style="grid-column:1/-1">Les exercices apparaîtront ici dès que tu auras rempli des charges dans le tableau.</div>`;
+  }
+
+  /* ---------- Interactions ---------- */
+  function wire() {
+    $$("[data-jump]").forEach((b) => b.addEventListener("click", () => document.getElementById(b.dataset.jump).scrollIntoView({ behavior: reduced() ? "auto" : "smooth", block: "start" })));
+    document.addEventListener("click", (e) => { const t = e.target.closest("[data-ev]"); if (t) openDetail(t.dataset.ev); });
+    $("#modal").addEventListener("click", (e) => { if (e.target.id === "modal") closeModal(); });
+    document.addEventListener("keydown", (e) => {
+      if (e.key !== "Escape") return;
+      if (lvlMenu) { closeLvlMenu(true); return; }
+      if (!$("#modal").hidden) closeModal();
+    });
+    document.addEventListener("pointerdown", (e) => { if (lvlMenu && !lvlMenu.contains(e.target) && !lvlMenu.owner.contains(e.target)) closeLvlMenu(); }, true);
+    addEventListener("scroll", () => { if (lvlMenu && Math.abs(scrollY - lvlMenu.openY) > 40) closeLvlMenu(); }, { passive: true });
+    let rz = null, lastW = innerWidth;
+    addEventListener("resize", () => {
+      closeLvlMenu();
+      if (innerWidth === lastW) return;
+      lastW = innerWidth; clearTimeout(rz); rz = setTimeout(renderCharts, 150);
+    });
+
+    $("#wk-prev").addEventListener("click", () => { state.week--; renderWeek(); });
+    $("#wk-next").addEventListener("click", () => { state.week++; renderWeek(); });
+    $("#wk-today").addEventListener("click", () => { state.week = 0; renderWeek(); });
+    $("#pe-open").addEventListener("click", () => openForm(null, { date: state.week ? addDays(mondayOf(todayKey()), state.week * 7) : todayKey() }));
+    $("#wk").addEventListener("click", (e) => {
+      const col = e.target.closest(".col"); if (!col || e.target.closest(".ev")) return;
+      const y = e.clientY - col.getBoundingClientRect().top;
+      const m = Math.min(23 * 60, +col.dataset.h0 * 60 + Math.floor((y / HOUR) * 2) * 30);
+      openForm(null, { date: col.dataset.key, start: hhmm(m), end: hhmm(Math.min(m + 60, 23 * 60 + 55)) });
+    });
+
+    const goalSet = (d) => { const g = Math.min(14, Math.max(1, goal() + d)); if (g === goal()) return; state.goals = { ...(state.goals || {}), sessions: g }; renderTiles(); write(() => db.doc("config/goals").set({ sessions: g })); };
+    $("#goal-minus").addEventListener("click", () => goalSet(-1));
+    $("#goal-plus").addEventListener("click", () => goalSet(1));
+
+    // Tableau
+    const chipRow = (el, ranges, cur) => (el.innerHTML = ranges.map(([v, l]) => `<button type="button" data-v="${v}" aria-pressed="${v === cur}">${l}</button>`).join(""));
+    chipRow($("#t-range"), T_RANGES, state.tRange);
+    chipRow($("#c-range"), C_RANGES, state.cRange);
+    $("#t-range").addEventListener("click", (e) => {
+      const b = e.target.closest("[data-v]"); if (!b) return;
+      state.tRange = +b.dataset.v; store.set("trange", state.tRange);
+      $$("#t-range button").forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
+      renderTable();
+    });
+    const setEnd = (k) => { const t = todayKey(); state.tEnd = !isKey(k) || k >= t ? null : k; renderTable(); };
+    $("#t-prev").addEventListener("click", () => setEnd(addDays(state.tEnd || todayKey(), -state.tRange)));
+    $("#t-next").addEventListener("click", () => setEnd(addDays(state.tEnd || todayKey(), state.tRange)));
+    $("#t-today").addEventListener("click", () => setEnd(null));
+    $("#t-end").addEventListener("change", (e) => setEnd(e.target.value));
+    const sheet = $("#sheet");
+    sheet.addEventListener("change", (e) => { if (e.target.classList.contains("cell")) commitCell(e.target); });
+    sheet.addEventListener("focusin", (e) => { if (e.target.classList.contains("cell")) e.target.select(); });
+    sheet.addEventListener("keydown", (e) => {
+      const inp = e.target.closest(".cell"); if (!inp) return;
+      if (e.key === "Escape") { const p = stored(inp.dataset.r, inp.dataset.d); inp.value = p == null ? "" : frKg(p); inp.blur(); return; }
+      const dirs = { ArrowUp: [-1, 0], ArrowDown: [1, 0], Enter: [e.shiftKey ? -1 : 1, 0], ArrowLeft: [0, -1], ArrowRight: [0, 1] };
+      const dir = dirs[e.key]; if (!dir) return;
+      const all = inp.selectionStart === 0 && inp.selectionEnd === inp.value.length;
+      if (e.key === "ArrowLeft" && !all && inp.selectionStart > 0) return;
+      if (e.key === "ArrowRight" && !all && inp.selectionEnd < inp.value.length) return;
+      e.preventDefault();
+      // Entrée sur la dernière ligne : pas de case suivante, on valide quand même la saisie.
+      if (!moveFocus(inp, dir[0], dir[1]) && e.key === "Enter") inp.blur();
+    });
+    sheet.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const form = e.target.closest(".add-ex"); if (!form) return;
+      const input = $("input", form), name = input.value.trim().replace(/\s+/g, " ");
+      if (!name) return;
+      const next = cloneEx(), exs = [...next.push, ...next.pull];
+      if (exs.some((x) => x.name.toLowerCase() === name.toLowerCase())) { toast("Cet exercice est déjà dans le tableau."); return; }
+      let id = slug(name), k = 2;
+      while (exs.some((x) => x.id === id) || id === "w") id = `${slug(name)}-${k++}`;
+      next[form.dataset.g].push({ id, name });
+      input.value = "";
+      saveExercises(next, `${name} ajouté`);
+      const again = $(`#add-ex-${form.dataset.g}`); if (again) again.focus();
+    });
+    sheet.addEventListener("click", (e) => {
+      const mv = e.target.closest("[data-mv]");
+      if (mv) {
+        const g = mv.dataset.g, next = cloneEx(), i = next[g].findIndex((x) => x.id === mv.dataset.id), j = i + +mv.dataset.mv;
+        if (i < 0 || j < 0 || j >= next[g].length) return;
+        [next[g][i], next[g][j]] = [next[g][j], next[g][i]];
+        saveExercises(next);
+        return;
+      }
+      const del = e.target.closest("[data-del]");
+      if (del) {
+        if (!del.classList.contains("confirm")) {
+          del.classList.add("confirm"); del.textContent = "Retirer ?";
+          setTimeout(() => { if (del.isConnected) { del.classList.remove("confirm"); del.innerHTML = ICON_TRASH; } }, 3000);
+          return;
+        }
+        const g = del.dataset.g, next = cloneEx(), ex = next[g].find((x) => x.id === del.dataset.del);
+        next[g] = next[g].filter((x) => x.id !== del.dataset.del);
+        saveExercises(next, ex ? `${ex.name} retiré (ses charges restent enregistrées)` : null);
+      }
+    });
+
+    // Courbes
+    $("#c-range").addEventListener("click", (e) => {
+      const b = e.target.closest("[data-v]"); if (!b) return;
+      state.cRange = +b.dataset.v; store.set("crange", state.cRange);
+      $$("#c-range button").forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
+      renderCharts();
+    });
+    $("#c-ex").addEventListener("change", (e) => { state.chartEx = e.target.value; renderCharts(); });
+    $("#minis").addEventListener("click", (e) => { const b = e.target.closest("[data-chart-ex]"); if (!b) return; state.chartEx = b.dataset.chartEx; renderCharts(); });
+  }
+
+  /* ---------- Démarrage ---------- */
+  function renderAll() { renderNow(); renderTiles(); renderWeek(); renderTasks(); renderTable(); renderCharts(); }
+  function boot() {
+    const tr = +store.get("trange"); if (T_RANGES.some((r) => r[0] === tr)) state.tRange = tr;
+    const cr = store.get("crange"); if (cr !== null && C_RANGES.some((r) => String(r[0]) === cr)) state.cRange = +cr;
+    for (const k of Object.keys(LISTS)) state.expanded[k] = store.get("expanded." + k) === "1";
+    buildTaskPanels(); wire(); renderAll();
+    setInterval(renderNow, 20000);
+    setInterval(() => {
+      if ($("#modal").hidden) renderWeek();
+      if (tableDay !== todayKey() && !$("#sheet").contains(document.activeElement)) { renderTable(); renderTasks(); renderTiles(); }
+    }, 60000);
+    wireGate();
+    if ("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost")) navigator.serviceWorker.register("sw.js").catch(() => {});
+    if (code) start(); else askCode(false);
+  }
+
+  /* ---------- Base en ligne (Supabase) ----------
+     Les données sont des documents JSON rangés par chemin (« tasks/abc », « loads/2026-10-27 »…), comme avant.
+     La clé publique ci-dessous ne donne accès à rien sans le code d'accès, vérifié par la base elle-même. */
+  const API = "https://dfbjpwvwmjkghgiwupnm.supabase.co";
+  const API_KEY = "sb_publishable_GQxDfPgyjgca4FBqHQYwaw_z0XOfl7-";
+  const CAL_URL = API + "/functions/v1/cockpit-calendar";
+  let code = store.get("code") || "";
+  class HttpError extends Error {
+    constructor(status) { super("HTTP " + status); this.status = status; this.code = status === 401 || status === 403 ? "invalid_argument" : "unavailable"; }
+  }
+  const newId = () => (crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2, 10));
+  async function checkCode(c) {
+    const r = await fetch(`${API}/rest/v1/cockpit_docs?select=path&path=eq.meta/hello`, { cache: "no-store", headers: { apikey: API_KEY, "x-cockpit-key": c } });
+    if (!r.ok) throw new HttpError(r.status);
+    const rows = await r.json();
+    return Array.isArray(rows) && rows.length === 1;
+  }
+  // Même interface que la base précédente (doc, collection, onSnapshot, set, update, delete, add) : le reste de la page n'a pas changé.
+  function makeDb(key, ready) {
+    const H = { apikey: API_KEY, "x-cockpit-key": key };
+    const colOf = (p) => p.split("/").slice(0, -1).join("/");
+    const cache = {}, gen = {}, loading = {}, subs = [], watched = new Set();
+    async function req(method, q, body, prefer) {
+      const headers = { ...H };
+      if (body) headers["Content-Type"] = "application/json";
+      if (prefer) headers.Prefer = prefer;
+      const r = await fetch(`${API}/rest/v1/${q}`, { method, cache: "no-store", headers, body: body ? JSON.stringify(body) : undefined });
+      if (!r.ok) throw new HttpError(r.status);
+      const t = await r.text();
+      return t ? JSON.parse(t) : null;
+    }
+    const clone = (d) => JSON.parse(JSON.stringify(d));
+    const snap = (p, d) => ({ id: p.split("/").pop(), exists: d !== undefined, data: () => (d === undefined ? undefined : clone(d)), metadata: {} });
+    function deliver(s) {
+      const m = cache[s.col ? s.path : colOf(s.path)]; if (!m) return;
+      if (s.col) s.cb({ docs: Object.keys(m).sort().map((p) => snap(p, m[p])) });
+      else s.cb(snap(s.path, m[s.path]));
+    }
+    const emit = (c) => subs.forEach((s) => { if ((s.col ? s.path : colOf(s.path)) === c) deliver(s); });
+    const remember = (c) => store.set("cache." + c, JSON.stringify(cache[c]));
+    function refresh(c) {
+      if (loading[c]) return loading[c];
+      const run = async () => {
+        if ((await ready) === false) return;
+        for (;;) {
+          const g = gen[c] || 0;
+          const rows = await req("GET", `cockpit_docs?select=path,data&collection=eq.${encodeURIComponent(c)}`);
+          if ((gen[c] || 0) !== g) continue; // une écriture locale est passée pendant la lecture : on relit
+          const m = {}; for (const r of rows) m[r.path] = r.data;
+          cache[c] = m; remember(c); emit(c);
+          return;
+        }
+      };
+      loading[c] = run().finally(() => { delete loading[c]; });
+      return loading[c];
+    }
+    function local(p, d) {
+      const c = colOf(p);
+      gen[c] = (gen[c] || 0) + 1;
+      cache[c] = { ...(cache[c] || {}) };
+      if (d === undefined) delete cache[c][p]; else cache[c][p] = d;
+      remember(c); emit(c);
+    }
+    function sub(s) {
+      subs.push(s);
+      const c = s.col ? s.path : colOf(s.path);
+      if (!watched.has(c)) {
+        watched.add(c);
+        if (!cache[c]) { try { const v = JSON.parse(store.get("cache." + c) || "null"); if (v && typeof v === "object") cache[c] = v; } catch (_) {} }
+      }
+      deliver(s);
+      refresh(c).catch((e) => { if (s.err) s.err(e); });
+      return () => { const i = subs.indexOf(s); if (i >= 0) subs.splice(i, 1); };
+    }
+    const docRef = (p) => ({
+      id: p.split("/").pop(), path: p,
+      async set(d) {
+        await req("POST", "cockpit_docs?on_conflict=path", [{ path: p, collection: colOf(p), data: d }], "resolution=merge-duplicates,return=minimal");
+        local(p, clone(d));
+      },
+      async update(patch) {
+        const ok = await req("POST", "rpc/cockpit_merge", { p_path: p, p_patch: patch });
+        if (ok !== true) throw new HttpError(403);
+        local(p, { ...((cache[colOf(p)] || {})[p] || {}), ...clone(patch) });
+      },
+      async delete() {
+        await req("DELETE", `cockpit_docs?path=eq.${encodeURIComponent(p)}`, null, "return=minimal");
+        local(p, undefined);
+      },
+      onSnapshot(cb, err) { return sub({ path: p, col: false, cb, err }); },
+    });
+    const colRef = (c) => ({
+      path: c,
+      doc: (id) => docRef(c + "/" + (id || newId())),
+      async add(d) { const r = docRef(c + "/" + newId()); await r.set(d); return r; },
+      onSnapshot(cb, err) { return sub({ path: c, col: true, cb, err }); },
+    });
+    return { doc: docRef, collection: colRef, refreshAll: () => Promise.all([...watched].map(refresh)) };
+  }
+
+  /* ---------- Code d'accès ---------- */
+  function forget() {
+    try { for (const k of Object.keys(localStorage)) if (k.startsWith("cockpit.cache.") || k === "cockpit.cal" || k === "cockpit.code") localStorage.removeItem(k); } catch (_) {}
+    code = "";
+  }
+  function askCode(changed) {
+    $("#gate").hidden = false;
+    const err = $("#gate-err");
+    err.hidden = !changed;
+    if (changed) err.textContent = "Ce code ne fonctionne plus. Entre le nouveau code d'accès.";
+    setTimeout(() => $("#gate-code").focus(), 50);
+  }
+  function wireGate() {
+    $("#gate-form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const c = $("#gate-code").value.trim().toLowerCase(), err = $("#gate-err"), btn = $("#gate-btn");
+      if (!c) { err.textContent = "Entre ton code d'accès."; err.hidden = false; return; }
+      btn.disabled = true; btn.textContent = "Vérification…";
+      try {
+        if (await checkCode(c)) {
+          code = c; store.set("code", c);
+          $("#gate").hidden = true; $("#gate-code").value = "";
+          start();
+        } else { err.textContent = "Code incorrect. Vérifie les tirets et réessaie."; err.hidden = false; }
+      } catch (_) { err.textContent = "Pas de connexion internet. Réessaie quand tu as du réseau."; err.hidden = false; }
+      btn.disabled = false; btn.textContent = "Entrer";
+    });
+    $("#logout").addEventListener("click", (e) => {
+      const b = e.currentTarget;
+      if (!b.dataset.confirm) { b.dataset.confirm = "1"; b.textContent = "Confirmer : déconnecter cet appareil"; setTimeout(() => { delete b.dataset.confirm; b.textContent = "Déconnecter cet appareil"; }, 4000); return; }
+      forget(); location.reload();
+    });
+  }
+
+  /* ---------- Planning en direct ---------- */
+  let calLoadedAt = 0;
+  async function loadCalendar() {
+    calLoadedAt = Date.now();
+    try {
+      const r = await fetch(CAL_URL, { cache: "no-store", headers: { "x-cockpit-key": code } });
+      if (r.status === 401) return;
+      if (!r.ok) return;
+      const data = await r.json();
+      if (!data || !Array.isArray(data.events)) return;
+      state.calendar = data; evCache = null;
+      store.set("cal", JSON.stringify(data));
+      renderWeek(); renderNow();
+    } catch (_) { /* hors ligne : on garde le planning déjà affiché */ }
+  }
+
+  let started = false;
+  function start() {
+    if (started) return;
+    started = true;
+    const ready = checkCode(code).catch(() => null); // null = pas de réseau : on affiche les dernières données de l'appareil
+    ready.then((ok) => { if (ok === false) { forget(); started = false; db = null; askCode(true); } });
+    db = makeDb(code, ready);
+    try { const c = JSON.parse(store.get("cal") || "null"); if (c && Array.isArray(c.events)) { state.calendar = c; evCache = null; } } catch (_) {}
+    connect();
+    loadCalendar();
+    const sync = () => {
+      if (document.visibilityState !== "visible" || !db) return;
+      db.refreshAll().then(() => { if (!$("#status").hidden && navigator.onLine) setStatus(""); }).catch(() => {});
+      if (Date.now() - calLoadedAt > 5 * 60000) loadCalendar();
+    };
+    document.addEventListener("visibilitychange", sync);
+    addEventListener("online", sync);
+    setInterval(sync, 60000);
+  }
+  function connect() {
+    const onErr = (e) => {
+      if (!navigator.onLine || (e && e.code === "unavailable")) setStatus("Hors ligne : tu vois les dernières données enregistrées sur cet appareil.");
+    };
+    const rows = (s) => s.docs.map((d) => ({ id: d.id, ...d.data() }));
+    db.collection("tasks").onSnapshot((s) => { state.tasks = rows(s); renderTasks(); renderTiles(); renderNow(); }, onErr);
+    db.collection("weights").onSnapshot((s) => {
+      const w = {}; for (const d of rows(s)) { const k = isKey(d.date) ? d.date : d.id; if (isKey(k) && typeof d.kg === "number") w[k] = d.kg; }
+      server.weights = w; mergeData(); fillTable(); renderTiles(); renderCharts();
+    }, onErr);
+    db.collection("loads").onSnapshot((s) => {
+      const l = {};
+      for (const d of rows(s)) {
+        const k = isKey(d.date) ? d.date : d.id; if (!isKey(k) || !d.kg || typeof d.kg !== "object") continue;
+        const m = {}; for (const [id, v] of Object.entries(d.kg)) if (typeof v === "number") m[id] = v;
+        if (Object.keys(m).length) l[k] = m;
+      }
+      server.loads = l; mergeData(); fillTable(); renderTiles(); renderCharts();
+    }, onErr);
+    db.collection("perso").onSnapshot((s) => { state.perso = rows(s); evCache = null; renderWeek(); renderNow(); }, onErr);
+    db.doc("config/exercises").onSnapshot((d) => {
+      server.exercises = d.exists ? d.data() : null;
+      if (pend.exercises) return; // une modification locale est en route : elle fait foi
+      state.exercises = server.exercises; renderTableKeepFocus(); renderCharts();
+    }, onErr);
+    db.doc("config/goals").onSnapshot((d) => { state.goals = d.exists ? d.data() : null; renderTiles(); }, onErr);
+    renderAll();
+  }
+  boot();
+})();
+</script>
+</body>
+</html>

@@ -14,5 +14,6 @@ L'app s'ouvre en plein écran, fonctionne hors ligne avec les dernières donnée
 ## Comment ça marche
 
 - Une seule page (`index.html`), sans compilation. `manifest.webmanifest` et `sw.js` en font une app installable.
-- Les données sont dans Supabase (table `cockpit_docs`). La clé publique du fichier ne donne accès à rien seule : chaque requête doit porter le code d'accès, vérifié par la base (règle RLS). Le code n'est pas dans ce dépôt.
+- Les données sont dans Supabase (table `cockpit_docs`). La clé publique du fichier ne donne accès à rien seule.
+- Le code d'accès ne sert qu'à connecter un appareil (fonction `cockpit_login`, 5 essais ratés max par 15 minutes) : l'appareil reçoit une longue clé aléatoire, et chaque requête doit porter cette clé, vérifiée par la base (règle RLS). Ni le code ni les clés ne sont dans ce dépôt.
 - Le planning vient de la fonction Supabase `cockpit-calendar`, qui lit le Google Agenda à chaque ouverture.

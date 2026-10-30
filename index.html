@@ -460,7 +460,7 @@ select { padding-right: 30px; }
     <img class="logo" src="icons/icon-192.png" alt="" width="56" height="56">
     <h1>Cockpit de Jules</h1>
     <p>Entre ton code d'accès. Il n'est demandé qu'une fois sur chaque appareil.</p>
-    <label class="field"><span>Code d'accès</span><input id="gate-code" type="text" autocomplete="current-password" autocapitalize="none" autocorrect="off" spellcheck="false" placeholder="mot-mot-mot-mot-00" required></label>
+    <label class="field"><span>Code d'accès</span><input id="gate-code" type="password" inputmode="numeric" autocomplete="current-password" autocapitalize="none" autocorrect="off" spellcheck="false" placeholder="••••" required></label>
     <p class="form-err" id="gate-err" hidden></p>
     <button class="btn" type="submit" id="gate-btn">Entrer</button>
   </form>
@@ -1553,27 +1553,46 @@ select { padding-right: 30px; }
     $("#gate").hidden = false;
     const err = $("#gate-err");
     err.hidden = !changed;
-    if (changed) err.textContent = "Ce code ne fonctionne plus. Entre le nouveau code d'accès.";
+    if (changed) err.textContent = "Cet appareil a été déconnecté. Entre ton code d'accès pour le reconnecter.";
     setTimeout(() => $("#gate-code").focus(), 50);
+  }
+  // Le code tapé ne sert qu'à obtenir une clé propre à cet appareil (essais limités côté base) ; c'est cette clé qui est gardée.
+  async function login(pin) {
+    const r = await fetch(`${API}/rest/v1/rpc/cockpit_login`, {
+      method: "POST", cache: "no-store",
+      headers: { apikey: API_KEY, "Content-Type": "application/json" },
+      body: JSON.stringify({ p_code: pin }),
+    });
+    if (!r.ok) throw new HttpError(r.status);
+    return r.json();
   }
   function wireGate() {
     $("#gate-form").addEventListener("submit", async (e) => {
       e.preventDefault();
-      const c = $("#gate-code").value.trim().toLowerCase(), err = $("#gate-err"), btn = $("#gate-btn");
+      const c = $("#gate-code").value.trim(), err = $("#gate-err"), btn = $("#gate-btn");
       if (!c) { err.textContent = "Entre ton code d'accès."; err.hidden = false; return; }
       btn.disabled = true; btn.textContent = "Vérification…";
       try {
-        if (await checkCode(c)) {
-          code = c; store.set("code", c);
-          $("#gate").hidden = true; $("#gate-code").value = "";
+        const res = await login(c);
+        if (res && res.ok && res.token) {
+          code = res.token; store.set("code", res.token);
+          $("#gate").hidden = true; $("#gate-code").value = ""; err.hidden = true;
           start();
-        } else { err.textContent = "Code incorrect. Vérifie les tirets et réessaie."; err.hidden = false; }
+        } else {
+          err.textContent = res && res.reason === "locked"
+            ? "Trop d'essais ratés. Attends 15 minutes avant de réessayer."
+            : "Code incorrect. Réessaie.";
+          err.hidden = false; $("#gate-code").select();
+        }
       } catch (_) { err.textContent = "Pas de connexion internet. Réessaie quand tu as du réseau."; err.hidden = false; }
       btn.disabled = false; btn.textContent = "Entrer";
     });
-    $("#logout").addEventListener("click", (e) => {
+    $("#logout").addEventListener("click", async (e) => {
       const b = e.currentTarget;
       if (!b.dataset.confirm) { b.dataset.confirm = "1"; b.textContent = "Confirmer : déconnecter cet appareil"; setTimeout(() => { delete b.dataset.confirm; b.textContent = "Déconnecter cet appareil"; }, 4000); return; }
+      try {
+        await fetch(`${API}/rest/v1/rpc/cockpit_logout`, { method: "POST", headers: { apikey: API_KEY, "x-cockpit-key": code, "Content-Type": "application/json" }, body: "{}" });
+      } catch (_) { /* hors ligne : la clé reste valable côté base, mais l'appareil l'oublie */ }
       forget(); location.reload();
     });
   }

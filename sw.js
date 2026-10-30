@@ -1,6 +1,6 @@
 // Service worker du Cockpit : l'app s'ouvre même sans réseau (dernière version de la page et des polices).
 // Les données (Supabase) ne passent pas par ici : la page garde sa propre copie des dernières données.
-const VERSION = "cockpit-v1";
+const VERSION = "cockpit-v2";
 const SHELL = ["./", "index.html", "manifest.webmanifest", "icons/icon-192.png", "icons/icon-512.png", "icons/apple-touch-icon.png"];
 
 self.addEventListener("install", (event) => {

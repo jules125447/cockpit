@@ -302,9 +302,11 @@ select { padding-right: 30px; }
 .grp.grp-done::before { background: var(--good); }
 @media (prefers-reduced-motion: no-preference) { .check:checked { animation: pop 0.25s ease-out; } }
 @keyframes pop { 50% { transform: scale(1.18); } }
-.lvl { display: inline-flex; align-items: center; gap: 5px; height: 24px; padding: 0 9px; border: 0; border-radius: 999px; background: var(--l-soft); color: var(--l-ink); font-size: 0.72rem; font-weight: 700; white-space: nowrap; margin-top: -1px; }
+.lvl { display: inline-flex; align-items: center; gap: 5px; height: 30px; padding: 0 8px 0 10px; border: 1px solid var(--l); border-radius: 999px; background: var(--l-soft); color: var(--l-ink); font-size: 0.74rem; font-weight: 700; white-space: nowrap; }
 .lvl::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--l); }
-.lvl:hover { box-shadow: inset 0 0 0 1px var(--l); }
+.lvl svg { width: 12px; height: 12px; margin-left: 1px; }
+.lvl:hover { background: var(--surface); }
+.lvl-menu .lvl-title { font-size: 0.68rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.09em; color: var(--muted); padding: 6px 10px 4px; }
 .item:not(:hover):not(:focus-within) .del { opacity: 0; }
 @media (hover: none) { .item .del { opacity: 1; } }
 .grp { display: flex; align-items: center; gap: 8px; margin: 10px 6px 2px; font-size: 0.7rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.08em; color: var(--l-ink); }
@@ -1048,7 +1050,7 @@ select { padding-right: 30px; }
     const L = lvlOf(t);
     return `<li class="item lvl${L}${t.done ? " done" : ""}" data-id="${esc(t.id)}">
       <label class="tick"><input type="checkbox" class="check" ${t.done ? "checked" : ""} aria-label="${t.done ? "Remettre à faire" : "Marquer comme fait"} : ${esc(t.title)}"><span class="txt">${esc(t.title)}</span></label>
-      ${t.done ? `<span class="fait">Fait</span>` : `<button type="button" class="lvl lvl${L}" data-act="lvl" aria-haspopup="menu" title="Urgence : ${LEVELS[L].label}. Clique pour changer" aria-label="Urgence : ${LEVELS[L].label}, changer">${LEVELS[L].short}</button>`}
+      ${t.done ? `<span class="fait">Fait</span>` : `<button type="button" class="lvl lvl${L}" data-act="lvl" aria-haspopup="menu" title="Urgence : ${LEVELS[L].label}. Clique pour changer" aria-label="Urgence : ${LEVELS[L].label}, changer">${LEVELS[L].short}${ICON_CHEV}</button>`}
       <button type="button" class="icon-btn del" data-act="del" title="Supprimer" aria-label="Supprimer : ${esc(t.title)}">${ICON_X}</button></li>`;
   }
   function renderTasks() {
@@ -1099,7 +1101,7 @@ select { padding-right: 30px; }
     const cur = lvlOf(task);
     const m = document.createElement("div");
     m.className = "lvl-menu"; m.setAttribute("role", "menu"); m.setAttribute("aria-label", "Urgence");
-    m.innerHTML = LEVELS.map((l, i) => `<button type="button" role="menuitemradio" class="lvl${i}" data-lv="${i}" aria-checked="${i === cur}"><span><b>${l.label}</b><small>${l.hint}</small></span></button>`).join("");
+    m.innerHTML = `<div class="lvl-title" role="presentation">Changer l'urgence</div>` + LEVELS.map((l, i) => `<button type="button" role="menuitemradio" class="lvl${i}" data-lv="${i}" aria-checked="${i === cur}"><span><b>${l.label}</b><small>${l.hint}</small></span></button>`).join("");
     m.owner = btn; m.openY = scrollY;
     document.body.appendChild(m);
     const r = btn.getBoundingClientRect(), mw = m.offsetWidth, mh = m.offsetHeight;

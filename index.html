@@ -45,6 +45,7 @@
   --pull: #12a19e;   --pull-ink: #0b6d6b;   --pull-soft: #dcf4f3;
   --now: #ef4444;
   --good: #2f8a4c;
+  --good-soft: #e3f4e7;
 
   /* Urgence des tâches, de pressant à dans longtemps */
   --lv0: #e5484d; --lv0-ink: #b4232a; --lv0-soft: #fdebec;
@@ -286,13 +287,21 @@ select { padding-right: 30px; }
 .lvl-pick button[aria-checked=true] { background: var(--l); color: var(--surface); box-shadow: 0 4px 10px -6px var(--l); }
 .lvl-pick button[aria-checked=true]::before { background: var(--surface); }
 .items { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
-.item { display: grid; grid-template-columns: 24px minmax(0, 1fr) auto auto; gap: 8px; align-items: start; padding: 8px 4px 8px 6px; border-radius: 11px; }
+.item { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 6px; align-items: center; padding: 2px 4px 2px 6px; border-radius: 11px; }
 .item:hover { background: var(--surface-2); }
-.item .txt { overflow-wrap: anywhere; padding-top: 1px; }
+/* Toute la ligne (case + texte) coche la tâche : grande zone facile à toucher au doigt. */
+.tick { display: flex; align-items: center; gap: 12px; min-height: 46px; padding: 6px 0; cursor: pointer; min-width: 0; -webkit-tap-highlight-color: transparent; }
+.item .txt { overflow-wrap: anywhere; }
 .item.lvl0:not(.done) .txt { font-weight: 600; }
 .item.done .txt { text-decoration: line-through; text-decoration-color: var(--muted); color: var(--muted); }
-.check { appearance: none; -webkit-appearance: none; width: 22px; height: 22px; margin: 0; border-radius: 50%; border: 2px solid var(--c); background: var(--surface); cursor: pointer; display: grid; place-items: center; }
-.check:checked { background: var(--c) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Cpath d='M5.5 10.5l3 3 6-6.5' fill='none' stroke='white' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center / 16px no-repeat; }
+.check { appearance: none; -webkit-appearance: none; flex: none; width: 26px; height: 26px; margin: 0; border-radius: 8px; border: 2px solid var(--c); background: var(--surface); cursor: pointer; display: grid; place-items: center; }
+.tick:hover .check { background: var(--c-soft); }
+.check:checked { background: var(--good) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Cpath d='M5 10.5l3.2 3.2L15 6.8' fill='none' stroke='white' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center / 18px no-repeat; border-color: var(--good); }
+.fait { display: inline-flex; align-items: center; height: 24px; padding: 0 10px; border-radius: 999px; background: var(--good-soft); color: var(--good); font-size: 0.72rem; font-weight: 800; letter-spacing: 0.02em; }
+.grp.grp-done { color: var(--good); }
+.grp.grp-done::before { background: var(--good); }
+@media (prefers-reduced-motion: no-preference) { .check:checked { animation: pop 0.25s ease-out; } }
+@keyframes pop { 50% { transform: scale(1.18); } }
 .lvl { display: inline-flex; align-items: center; gap: 5px; height: 24px; padding: 0 9px; border: 0; border-radius: 999px; background: var(--l-soft); color: var(--l-ink); font-size: 0.72rem; font-weight: 700; white-space: nowrap; margin-top: -1px; }
 .lvl::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--l); }
 .lvl:hover { box-shadow: inset 0 0 0 1px var(--l); }
@@ -418,7 +427,8 @@ select { padding-right: 30px; }
 .checkline input { width: 18px; height: 18px; accent-color: var(--perso); }
 .pe-form { display: grid; gap: 14px; --ring: rgba(229, 86, 138, 0.2); --c: var(--perso); }
 .form-err { color: var(--now); font-size: 0.86rem; font-weight: 600; }
-.toast { position: fixed; left: 50%; bottom: calc(20px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); background: var(--ink); color: var(--surface); padding: 10px 18px; border-radius: 999px; font-weight: 600; font-size: 0.9rem; z-index: 40; box-shadow: var(--shadow-lg); max-width: calc(100% - 32px); text-align: center; }
+.toast { position: fixed; left: 50%; bottom: calc(20px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); background: var(--ink); color: var(--surface); padding: 10px 18px; border-radius: 999px; font-weight: 600; font-size: 0.9rem; z-index: 40; box-shadow: var(--shadow-lg); max-width: calc(100% - 32px); text-align: center; display: flex; align-items: center; gap: 12px; }
+.toast button { border: 0; background: none; color: var(--tilo); font-weight: 800; padding: 4px 2px; text-decoration: underline; text-underline-offset: 3px; white-space: nowrap; }
 .status { justify-self: start; font-size: 0.86rem; font-weight: 600; color: var(--push-ink); background: var(--push-soft); padding: 6px 12px; border-radius: 10px; }
 .foot { color: var(--muted); font-size: 0.8rem; text-align: center; padding-top: 6px; }
 
@@ -673,7 +683,15 @@ select { padding-right: 30px; }
   }
   const allEx = () => [...exList("push").map((x) => ({ ...x, g: "push" })), ...exList("pull").map((x) => ({ ...x, g: "pull" }))];
 
-  function toast(msg) { const t = $("#toast"); t.textContent = msg; t.hidden = false; clearTimeout(toast.t); toast.t = setTimeout(() => (t.hidden = true), 2600); }
+  function toast(msg, action) {
+    const t = $("#toast"); t.textContent = msg;
+    if (action) {
+      const b = document.createElement("button"); b.type = "button"; b.textContent = action.label;
+      b.addEventListener("click", () => { t.hidden = true; action.fn(); });
+      t.append(b);
+    }
+    t.hidden = false; clearTimeout(toast.t); toast.t = setTimeout(() => (t.hidden = true), action ? 6000 : 2600);
+  }
   function setStatus(msg) { const s = $("#status"); s.textContent = msg || ""; s.hidden = !msg; }
   async function write(fn, okMsg) {
     if (!db) { toast("Entre ton code d'accès pour enregistrer."); return false; }
@@ -1013,19 +1031,24 @@ select { padding-right: 30px; }
         const i = (+pick.dataset.pick + (ev.key === "ArrowRight" ? 1 : 3)) % 4;
         const nb = $(`[data-pick="${i}"]`, panel); nb.click(); nb.focus();
       });
-      panel.addEventListener("change", (ev) => {
+      panel.addEventListener("change", async (ev) => {
         if (!ev.target.classList.contains("check")) return;
-        const id = ev.target.closest("[data-id]").dataset.id, done = ev.target.checked;
-        write(() => db.doc("tasks/" + id).update({ done, doneAt: done ? Date.now() : null }), done ? "Bien joué" : null);
+        const box = ev.target, li = box.closest("[data-id]"), id = li.dataset.id, done = box.checked;
+        const t = state.tasks.find((x) => x.id === id), title = t ? t.title : "Tâche";
+        li.classList.toggle("done", done);
+        const ok = await write(() => db.doc("tasks/" + id).update({ done, doneAt: done ? Date.now() : null }));
+        if (!ok) { box.checked = !done; li.classList.toggle("done", !done); return; }
+        const short = title.length > 32 ? title.slice(0, 31) + "…" : title;
+        if (done) toast(`Fait : ${short}`, { label: "Annuler", fn: () => write(() => db.doc("tasks/" + id).update({ done: false, doneAt: null })) });
+        else toast(`Remise à faire : ${short}`);
       });
     });
   }
   function taskItem(t) {
     const L = lvlOf(t);
     return `<li class="item lvl${L}${t.done ? " done" : ""}" data-id="${esc(t.id)}">
-      <input type="checkbox" class="check" ${t.done ? "checked" : ""} aria-label="${t.done ? "Rouvrir" : "Terminer"} : ${esc(t.title)}">
-      <span class="txt">${esc(t.title)}</span>
-      ${t.done ? "<span></span>" : `<button type="button" class="lvl lvl${L}" data-act="lvl" aria-haspopup="menu" title="Urgence : ${LEVELS[L].label}. Clique pour changer" aria-label="Urgence : ${LEVELS[L].label}, changer">${LEVELS[L].short}</button>`}
+      <label class="tick"><input type="checkbox" class="check" ${t.done ? "checked" : ""} aria-label="${t.done ? "Remettre à faire" : "Marquer comme fait"} : ${esc(t.title)}"><span class="txt">${esc(t.title)}</span></label>
+      ${t.done ? `<span class="fait">Fait</span>` : `<button type="button" class="lvl lvl${L}" data-act="lvl" aria-haspopup="menu" title="Urgence : ${LEVELS[L].label}. Clique pour changer" aria-label="Urgence : ${LEVELS[L].label}, changer">${LEVELS[L].short}</button>`}
       <button type="button" class="icon-btn del" data-act="del" title="Supprimer" aria-label="Supprimer : ${esc(t.title)}">${ICON_X}</button></li>`;
   }
   function renderTasks() {
@@ -1044,18 +1067,24 @@ select { padding-right: 30px; }
       const exp = !!state.expanded[key];
       // Toujours rangées de Pressant à Dans longtemps ; repliée, la liste ne montre que les premières.
       const shown = exp ? open : open.slice(0, COLLAPSED);
-      $("[data-open]", panel).innerHTML = !open.length
-        ? `<li class="empty">${db ? "Rien en attente. Ajoute ta prochaine tâche." : "Chargement de tes tâches…"}</li>`
-        : LEVELS.map((l, i) => {
-          const g = shown.filter((t) => lvlOf(t) === i);
-          return g.length ? `<li class="grp lvl${i}" role="presentation">${l.label}<span>${open.filter((t) => lvlOf(t) === i).length}</span></li>${g.map(taskItem).join("")}` : "";
-        }).join("");
+      // Les tâches cochées aujourd'hui restent visibles avec « Fait » ; les plus anciennes vont dans « Terminées ».
+      const today = todayKey();
+      const doneToday = done.filter((t) => t.doneAt && paris(new Date(t.doneAt)).key === today);
+      const older = done.filter((t) => !doneToday.includes(t));
+      const openHtml = LEVELS.map((l, i) => {
+        const g = shown.filter((t) => lvlOf(t) === i);
+        return g.length ? `<li class="grp lvl${i}" role="presentation">${l.label}<span>${open.filter((t) => lvlOf(t) === i).length}</span></li>${g.map(taskItem).join("")}` : "";
+      }).join("");
+      const todayHtml = doneToday.length ? `<li class="grp grp-done" role="presentation">Fait aujourd'hui<span>${doneToday.length}</span></li>${doneToday.map(taskItem).join("")}` : "";
+      $("[data-open]", panel).innerHTML = (open.length ? openHtml : `<li class="empty">${db ? (doneToday.length ? "Tout est fait. Bien joué !" : "Rien en attente. Ajoute ta prochaine tâche.") : "Chargement de tes tâches…"}</li>`) + todayHtml;
       const btn = $("[data-expand]", panel), more = open.length - COLLAPSED;
       btn.hidden = !exp && more <= 0;
       btn.setAttribute("aria-expanded", String(exp));
       btn.innerHTML = exp ? `Réduire ${ICON_CHEV}` : `Développer · ${more} autre${more > 1 ? "s" : ""} tâche${more > 1 ? "s" : ""} ${ICON_CHEV}`;
-      $("[data-donesum]", panel).textContent = `Terminées · ${done.length}`;
-      $("[data-done]", panel).innerHTML = done.slice(0, 40).map(taskItem).join("");
+      const doneBox = $(".tl-done", panel);
+      doneBox.hidden = !older.length;
+      $("[data-donesum]", panel).textContent = `Terminées · ${older.length}`;
+      $("[data-done]", panel).innerHTML = older.slice(0, 40).map(taskItem).join("");
     });
   }
   let lvlMenu = null;
